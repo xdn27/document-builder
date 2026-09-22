@@ -29,6 +29,10 @@ final class RenderContext
         // dari dalam container tempat PHP berjalan). Tanpa resolver, perilaku
         // sama seperti sebelumnya: dibaca apa adanya lewat getimagesize().
         public readonly ?ImageResolver $imageResolver = null,
+        // Mode sunting inline di kanvas builder: renderer menandai region teks
+        // dengan atribut data-edit-* supaya JS tahu teks mana milik prop apa.
+        // Mati secara bawaan agar HTML cetak/PDF byte-identical dengan sebelumnya.
+        public readonly bool $editable = false,
     ) {}
 
     /** Konteks siap pakai untuk test renderer. */
@@ -54,22 +58,23 @@ final class RenderContext
             $this->images,
             $this->qr,
             $this->imageResolver,
+            $this->editable,
         );
     }
 
     public function withQr(QrCodeGenerator $qr): self
     {
-        return new self($this->style, $this->page, $this->sanitizer, $this->variables, $this->images, $qr, $this->imageResolver);
+        return new self($this->style, $this->page, $this->sanitizer, $this->variables, $this->images, $qr, $this->imageResolver, $this->editable);
     }
 
     public function withImages(ImageSourcePolicy $images): self
     {
-        return new self($this->style, $this->page, $this->sanitizer, $this->variables, $images, $this->qr, $this->imageResolver);
+        return new self($this->style, $this->page, $this->sanitizer, $this->variables, $images, $this->qr, $this->imageResolver, $this->editable);
     }
 
     public function withImageResolver(?ImageResolver $imageResolver): self
     {
-        return new self($this->style, $this->page, $this->sanitizer, $this->variables, $this->images, $this->qr, $imageResolver);
+        return new self($this->style, $this->page, $this->sanitizer, $this->variables, $this->images, $this->qr, $imageResolver, $this->editable);
     }
 
     /** Teks yang boleh mengandung <b> <i> <u> <br>. */
@@ -87,6 +92,39 @@ final class RenderContext
     public function escape(string $raw): string
     {
         return htmlspecialchars($raw, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+
+    /**
+     * Atribut penanda region teks yang bisa disunting inline di kanvas builder:
+     * prop pemilik, indeks baris/kolom untuk struktur tabel/daftar, kunci untuk
+     * properti bertipe rows, dan penanda rich (teks boleh mengandung <b><i><u><br>).
+     * String kosong bila konteks tidak editable — HTML cetak/PDF tidak tersentuh.
+     */
+    public function editAttr(string $prop, ?int $row = null, ?int $col = null, ?string $key = null, bool $rich = false): string
+    {
+        if (! $this->editable) {
+            return '';
+        }
+
+        $attr = sprintf(' data-edit-prop="%s"', $this->escape($prop));
+
+        if ($row !== null) {
+            $attr .= sprintf(' data-edit-row="%d"', $row);
+        }
+
+        if ($col !== null) {
+            $attr .= sprintf(' data-edit-col="%d"', $col);
+        }
+
+        if ($key !== null) {
+            $attr .= sprintf(' data-edit-key="%s"', $this->escape($key));
+        }
+
+        if ($rich) {
+            $attr .= ' data-edit-rich="1"';
+        }
+
+        return $attr;
     }
 
     /** Kotak penanda untuk keadaan yang tidak bisa dirender, tanpa melempar exception. */

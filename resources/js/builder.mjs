@@ -42,6 +42,8 @@ export function initBuilder({
     onSelect,
     onReorder,
     onRendered,
+    onInlineEdit,
+    onEditingChange,
 } = {}) {
     const canvas = doc.querySelector(canvasSelector);
     const styleEl = doc.querySelector(styleSelector);
@@ -75,6 +77,12 @@ export function initBuilder({
     });
 
     handle.applyPreview = (detail = {}) => {
+        // Pratinjau yang datang saat sunting inline akan menghancurkan caret:
+        // commit dulu supaya tidak ada ketikan yang hilang.
+        if (inlineEditing.isEditing()) {
+            inlineEditing.commit();
+        }
+
         const revision = detail.revision;
 
         // Respons yang lebih tua dari yang terakhir dilukis dibuang: tanpa ini,
@@ -99,6 +107,8 @@ export function initBuilder({
 
     initOutlineDragging({ document: doc, onReorder });
 
+    const inlineEditing = initInlineEditing({ document: doc, canvas, onInlineEdit, onEditingChange });
+
     // Kanvas awal sudah dicetak server sebagai .doc-flow; cukup dipaginasi.
     if (canvas.querySelector('.doc-flow')) {
         state.rendering = paginateDocument({ document: doc, root: canvas.querySelector('.doc-root') }).then((result) => {
@@ -108,6 +118,267 @@ export function initBuilder({
     }
 
     return handle;
+}
+
+/**
+ * Sunting inline konten blok langsung di kanvas (fase 1: teks sederhana).
+ * Double-click region bertanda data-edit-* → contenteditable → blur commit,
+ * Escape batal. Properti non-konten tetap disunting di inspektor.
+ *
+ * Dua hal yang sengaja dijaga:
+ * - Preview dijeda selama mengetik: React tidak boleh me-render ulang
+ *   (innerHTML diganti = caret musnah). Commit mengirim satu nilai final
+ *   lewat onInlineEdit, baru React yang me-render ulang.
+ * - Nilai dinormalisasi ke subset yang direnderer (lihat serializeInlineEdit):
+ *   contenteditable menghasilkan HTML kotor (div, span, &nbsp;) yang
+ *   sanitizer server akan buang — tanpa normalisasi, yang terlihat saat
+ *   mengetik berbeda dengan yang tersimpan.
+ */
+export function initInlineEditing({ document: doc = globalThis.document, canvas, onInlineEdit, onEditingChange } = {}) {
+    const idle = { isEditing: () => false, commit: () => {}, cancel: () => {} };
+
+    if (!canvas || typeof canvas.addEventListener !== 'function') {
+        return idle;
+    }
+
+    let editing = null;
+
+    function setEditing(next) {
+        editing = next;
+        onEditingChange?.(next !== null);
+    }
+
+    function cleanup(el) {
+        el.removeAttribute('contenteditable');
+        el.removeAttribute('data-editing');
+    }
+
+    function describe(el) {
+        const blockEl = el.closest?.('[data-block-id]');
+        const { editProp, editRow, editCol, editKey } = el.dataset;
+
+        if (!blockEl || !editProp) {
+            return null;
+        }
+
+        return {
+            blockId: blockEl.dataset.blockId,
+            prop: editProp,
+            row: editRow === undefined ? undefined : Number(editRow),
+            col: editCol === undefined ? undefined : Number(editCol),
+            key: editKey,
+            rich: el.hasAttribute('data-edit-rich'),
+        };
+    }
+
+    function commit() {
+        if (!editing) {
+            return;
+        }
+
+        const { el, target, original } = editing;
+        const value = serializeInlineEdit(el, target.rich);
+
+        cleanup(el);
+        setEditing(null);
+
+        if (value !== original) {
+            onInlineEdit?.({ ...target, value });
+        }
+    }
+
+    function cancel() {
+        if (!editing) {
+            return;
+        }
+
+        const { el, originalHtml } = editing;
+
+        cleanup(el);
+        el.innerHTML = originalHtml;
+        el.blur?.();
+        setEditing(null);
+    }
+
+    function start(el) {
+        const target = describe(el);
+
+        if (!target) {
+            return;
+        }
+
+        if (editing && editing.el !== el) {
+            commit();
+        }
+
+        if (editing) {
+            return;
+        }
+
+        setEditing({ el, target, original: serializeInlineEdit(el, target.rich), originalHtml: el.innerHTML });
+        el.setAttribute('contenteditable', 'true');
+        el.setAttribute('data-editing', 'true');
+        el.focus?.();
+    }
+
+    canvas.addEventListener('dblclick', (event) => {
+        const el = event.target.closest?.('[data-edit-prop]');
+
+        if (!el || !canvas.contains(el)) {
+            return;
+        }
+
+        event.preventDefault();
+        start(el);
+    });
+
+    canvas.addEventListener('focusout', (event) => {
+        if (editing && !editing.el.contains(event.relatedTarget)) {
+            commit();
+        }
+    });
+
+    canvas.addEventListener('keydown', (event) => {
+        if (editing && (event.key === 'Escape' || event.key === 'Esc')) {
+            event.preventDefault();
+            cancel();
+        }
+    });
+
+    // Tempel selalu teks polos: HTML kaya dari clipboard (Word, web) pasti
+    // terpotong saat commit — lebih jujur menampilkannya polos sejak awal.
+    canvas.addEventListener('paste', (event) => {
+        if (!editing) {
+            return;
+        }
+
+        event.preventDefault();
+
+        const text = (event.clipboardData?.getData('text/plain') || '').replace(/\r\n?/g, '\n');
+        const selection = doc.getSelection?.();
+
+        if (!selection || selection.rangeCount === 0) {
+            return;
+        }
+
+        const range = selection.getRangeAt(0);
+
+        if (!editing.el.contains(range.commonAncestorContainer)) {
+            return;
+        }
+
+        range.deleteContents();
+
+        text.split('\n').forEach((line, index, lines) => {
+            if (index > 0) {
+                range.insertNode(doc.createElement('br'));
+            }
+
+            const node = doc.createTextNode(line);
+
+            range.insertNode(node);
+            range.setStartAfter(node);
+            range.collapse(true);
+        });
+
+        selection.removeAllRanges();
+        selection.addRange(range);
+    });
+
+    return { isEditing: () => editing !== null, commit, cancel };
+}
+
+const INLINE_BLOCK_TAGS = new Set([
+    'address', 'article', 'aside', 'blockquote', 'dd', 'details', 'dialog', 'div', 'dl', 'dt',
+    'fieldset', 'figcaption', 'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'header', 'hr', 'li', 'main', 'nav', 'ol', 'p', 'pre', 'section', 'table', 'tbody', 'td',
+    'tfoot', 'th', 'thead', 'tr', 'ul',
+]);
+
+/**
+ * Normalisasi isi contenteditable menjadi nilai schema: blok menjadi <br>,
+ * inline asing (span, font, a, ...) dibuka bungkusnya, gambar dibuang, dan
+ * untuk teks rich hanya <b><i><u><br> yang dipertahankan — cerminan HtmlSanitizer.
+ * Non-rich mengembalikan teks polos satu baris.
+ */
+export function serializeInlineEdit(root, rich) {
+    const parts = [];
+
+    serializeInlineChildren(root, rich, parts);
+
+    let html = parts.join('').replace(/&nbsp;|\u00a0/g, ' ');
+
+    if (!rich) {
+        return html
+            .replace(/<br\s*\/?>/gi, ' ')
+            .replace(/<[^>]*>/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    html = html
+        .replace(/(<br\s*\/?>)+$/gi, '')
+        .replace(/^(<br\s*\/?>)+/gi, '')
+        .replace(/(<br\s*\/?>){3,}/gi, '<br><br>');
+
+    return html.trim();
+}
+
+function serializeInlineChildren(node, rich, parts) {
+    Array.from(node.childNodes || []).forEach((child) => {
+        if (child.nodeType === 3) {
+            parts.push(child.nodeValue);
+            return;
+        }
+
+        if (child.nodeType !== 1) {
+            return;
+        }
+
+        const tag = (child.tagName || '').toLowerCase();
+
+        if (tag === 'br') {
+            parts.push('<br>');
+            return;
+        }
+
+        if (tag === 'img') {
+            return;
+        }
+
+        if (rich && (tag === 'b' || tag === 'strong')) {
+            parts.push('<b>');
+            serializeInlineChildren(child, rich, parts);
+            parts.push('</b>');
+            return;
+        }
+
+        if (rich && (tag === 'i' || tag === 'em')) {
+            parts.push('<i>');
+            serializeInlineChildren(child, rich, parts);
+            parts.push('</i>');
+            return;
+        }
+
+        if (rich && tag === 'u') {
+            parts.push('<u>');
+            serializeInlineChildren(child, rich, parts);
+            parts.push('</u>');
+            return;
+        }
+
+        if (INLINE_BLOCK_TAGS.has(tag)) {
+            if (parts.length > 0 && parts[parts.length - 1] !== '<br>') {
+                parts.push('<br>');
+            }
+
+            serializeInlineChildren(child, rich, parts);
+            parts.push('<br>');
+            return;
+        }
+
+        serializeInlineChildren(child, rich, parts);
+    });
 }
 
 /**

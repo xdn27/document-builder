@@ -296,6 +296,18 @@ body {
         outline: none;
     }
 
+    /* Penanda sunting inline hanya ada di HTML builder (konteks editable),
+       jadi aturan ini tidak pernah menyentuh cetak/PDF. */
+    [data-edit-prop] {
+        cursor: text;
+    }
+
+    [data-editing="true"] {
+        outline: 2px solid #059669;
+        outline-offset: 2px;
+        border-radius: 2px;
+    }
+
     .db-no-print {
         display: none !important;
     }

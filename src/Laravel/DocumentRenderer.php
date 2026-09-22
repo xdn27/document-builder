@@ -33,7 +33,7 @@ final class DocumentRenderer
         private readonly ImageResolver $imageResolver,
     ) {}
 
-    public function render(Template $template, ?VariableResolver $resolver = null): RenderedDocument
+    public function render(Template $template, ?VariableResolver $resolver = null, bool $editable = false): RenderedDocument
     {
         $context = new RenderContext(
             $template->style,
@@ -43,6 +43,7 @@ final class DocumentRenderer
             $this->images,
             $this->qr,
             $this->imageResolver,
+            $editable,
         );
 
         return (new HtmlRenderer)->render($template, $context);

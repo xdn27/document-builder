@@ -45,6 +45,16 @@ final class AssetLoader
     }
 
     /**
+     * Versi pendek isi bundled JS untuk cache-busting URL aset: setiap
+     * perubahan sumber JS menghasilkan versi baru, sehingga peramban maupun
+     * pemuat SPA tidak bertahan memakai skrip lama (mis. tanpa initInlineEditing).
+     */
+    public static function version(): string
+    {
+        return substr(md5(self::bundledJs()), 0, 8);
+    }
+
+    /**
      * Berkas font disisipkan sebagai data URI base64, bukan dipublikasikan ke
      * public/ — konsisten dengan CSS dan JS, dan supaya PDF via Gotenberg
      * (Chromium yang menerima berkas HTML lepas, tanpa akses ke domain

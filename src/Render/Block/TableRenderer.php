@@ -35,27 +35,29 @@ final class TableRenderer implements BlockRenderer
 
         $html .= '<thead class="db-table__head"><tr>';
 
-        foreach ($columns as $column) {
+        foreach ($columns as $columnIndex => $column) {
             $width = (float) $column['widthPercent'];
 
             $html .= sprintf(
-                '<th class="db-table__th%s" style="%stext-align:%s">%s</th>',
+                '<th class="db-table__th%s" style="%stext-align:%s"%s>%s</th>',
                 $block->prop('headerBold') === true ? '' : ' db-table__th--regular',
                 $width > 0.0 ? sprintf('width:%s%%;', $this->number($width)) : '',
                 $context->escape($this->align($column['align'])),
+                $context->editAttr('columns', $columnIndex, key: 'label', rich: true),
                 $context->rich((string) $column['label']),
             );
         }
 
         $html .= '</tr></thead><tbody class="db-table__body">';
 
-        foreach ($block->prop('rows') as $row) {
+        foreach ($block->prop('rows') as $rowIndex => $row) {
             $html .= '<tr class="db-table__row">';
 
             foreach ($columns as $index => $column) {
                 $html .= sprintf(
-                    '<td class="db-table__td" style="text-align:%s">%s</td>',
+                    '<td class="db-table__td" style="text-align:%s"%s>%s</td>',
                     $context->escape($this->align($column['align'])),
+                    $context->editAttr('rows', $rowIndex, $index, rich: true),
                     $context->rich((string) ($row[$index] ?? '')),
                 );
             }

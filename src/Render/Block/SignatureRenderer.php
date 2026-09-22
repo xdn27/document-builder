@@ -43,11 +43,11 @@ final class SignatureRenderer implements BlockRenderer
         );
 
         $rows = [
-            $this->textRow($datelines, 'db-signature__dateline', null),
-            $this->textRow($this->field($columns, 'position', $context), 'db-signature__position', null),
+            $this->textRow($datelines, 'db-signature__dateline', null, null, $context),
+            $this->textRow($this->field($columns, 'position', $context), 'db-signature__position', null, 'position', $context),
             $this->spaceRow($columns, Mm::css((float) $block->prop('spaceMm')), $cellAlign, $context),
-            $this->textRow($this->field($columns, 'name', $context), 'db-signature__name', null),
-            $this->textRow($this->field($columns, 'nip', $context), 'db-signature__nip', 'NIP. '),
+            $this->textRow($this->field($columns, 'name', $context), 'db-signature__name', null, 'name', $context),
+            $this->textRow($this->field($columns, 'nip', $context), 'db-signature__nip', 'NIP. ', 'nip', $context),
         ];
 
         $html = '';
@@ -105,21 +105,30 @@ final class SignatureRenderer implements BlockRenderer
      * @param  list<string>  $values  HTML aman per kolom
      * @return list<array{html:string,space:bool}>|null null bila tidak ada kolom yang memakainya
      */
-    private function textRow(array $values, string $class, ?string $prefix): ?array
+    private function textRow(array $values, string $class, ?string $prefix, ?string $editKey, RenderContext $context): ?array
     {
         if (array_filter($values, static fn (string $v): bool => $v !== '') === []) {
             return null;
         }
 
-        return array_map(
-            static fn (string $value): array => [
+        $cells = [];
+
+        foreach (array_values($values) as $index => $value) {
+            $cells[] = [
                 'space' => false,
                 'html' => '<td class="db-signature__cell"{style}>'
-                    .($value === '' ? '' : sprintf('<span class="%s">%s%s</span>', $class, $prefix ?? '', $value))
+                    .($value === '' ? '' : sprintf(
+                        '<span class="%s"%s>%s%s</span>',
+                        $class,
+                        $editKey === null ? '' : $context->editAttr('columns', $index, key: $editKey, rich: true),
+                        $prefix ?? '',
+                        $value,
+                    ))
                     .'</td>',
-            ],
-            $values,
-        );
+            ];
+        }
+
+        return $cells;
     }
 
     /**

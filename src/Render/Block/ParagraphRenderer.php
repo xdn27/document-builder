@@ -28,9 +28,10 @@ final class ParagraphRenderer implements BlockRenderer
         // (spasi, tanda baca, angka) ke algoritma Unicode Bidi yang benar, yang
         // tidak didapat dari CSS direction saja.
         return sprintf(
-            '<p dir="%s" style="%s">%s</p>',
+            '<p dir="%s" style="%s"%s>%s</p>',
             $context->escape((string) $block->prop('direction')),
             $style,
+            $context->editAttr('text', rich: true),
             $context->rich((string) $block->prop('text')),
         );
     }

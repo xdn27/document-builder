@@ -36,7 +36,7 @@ final class ListRenderer implements BlockRenderer
         $counters = [0, 0, 0];
         $html = '';
 
-        foreach ($items as $item) {
+        foreach ($items as $itemIndex => $item) {
             $level = max(0, min(self::MAX_LEVEL, (int) $item['level']));
 
             if ($numbered) {
@@ -55,9 +55,10 @@ final class ListRenderer implements BlockRenderer
             $html .= sprintf(
                 '<div class="db-list__item" style="padding-left:%s">'
                 .'<span class="db-list__marker">%s</span>'
-                .'<span class="db-list__text">%s</span></div>',
+                .'<span class="db-list__text"%s>%s</span></div>',
                 Mm::css($indent * ($level + 1)),
                 $context->escape($marker),
+                $context->editAttr('items', $itemIndex, key: 'text', rich: true),
                 $context->rich((string) $item['text']),
             );
         }
