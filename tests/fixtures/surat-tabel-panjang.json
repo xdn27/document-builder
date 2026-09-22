@@ -1,0 +1,439 @@
+{
+    "version": 1,
+    "page": {
+        "size": "A4",
+        "orientation": "portrait",
+        "margin": {
+            "top": 20,
+            "right": 20,
+            "bottom": 20,
+            "left": 25
+        }
+    },
+    "style": {
+        "fontFamily": "tinos",
+        "fontSize": 12,
+        "lineHeight": 1.5
+    },
+    "zones": {
+        "header": {
+            "repeat": "first-only",
+            "height": "auto",
+            "blocks": [
+                {
+                    "id": "kop",
+                    "type": "letterhead",
+                    "props": {
+                        "showLogo": false,
+                        "line1": "{{ institution.name }}",
+                        "line2": "Lembaga Pendidikan Islam",
+                        "line3": "Jl. Merdeka No. 10, Bandung 40111",
+                        "line4": "Telp. 022-0000000 | info@nurulilmi.sch.id",
+                        "rule": "double"
+                    }
+                }
+            ]
+        },
+        "body": {
+            "blocks": [
+                {
+                    "id": "meta",
+                    "type": "letter-meta",
+                    "props": {
+                        "labelWidthMm": 25,
+                        "rows": [
+                            {
+                                "label": "Nomor",
+                                "value": "{{ letter.number }}"
+                            },
+                            {
+                                "label": "Lampiran",
+                                "value": "-"
+                            },
+                            {
+                                "label": "Hal",
+                                "value": "Surat Keterangan Aktif"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "id": "sp1",
+                    "type": "spacer",
+                    "props": {
+                        "heightMm": 6
+                    }
+                },
+                {
+                    "id": "p1",
+                    "type": "paragraph",
+                    "props": {
+                        "text": "Yang bertanda tangan di bawah ini menerangkan bahwa <b>{{ student.name }}</b> benar merupakan santri aktif pada lembaga kami.",
+                        "align": "justify",
+                        "indentMm": 10
+                    }
+                },
+                {
+                    "id": "tabel",
+                    "type": "table",
+                    "props": {
+                        "repeatHeader": true,
+                        "border": "all",
+                        "columns": [
+                            {
+                                "label": "No",
+                                "widthPercent": 10,
+                                "align": "center"
+                            },
+                            {
+                                "label": "Nama Santri",
+                                "widthPercent": 55,
+                                "align": "left"
+                            },
+                            {
+                                "label": "Kelas",
+                                "widthPercent": 35,
+                                "align": "center"
+                            }
+                        ],
+                        "rows": [
+                            [
+                                "1",
+                                "Santri Contoh Nomor 1",
+                                "VII B"
+                            ],
+                            [
+                                "2",
+                                "Santri Contoh Nomor 2",
+                                "VII C"
+                            ],
+                            [
+                                "3",
+                                "Santri Contoh Nomor 3",
+                                "VII A"
+                            ],
+                            [
+                                "4",
+                                "Santri Contoh Nomor 4",
+                                "VII B"
+                            ],
+                            [
+                                "5",
+                                "Santri Contoh Nomor 5",
+                                "VII C"
+                            ],
+                            [
+                                "6",
+                                "Santri Contoh Nomor 6",
+                                "VII A"
+                            ],
+                            [
+                                "7",
+                                "Santri Contoh Nomor 7",
+                                "VII B"
+                            ],
+                            [
+                                "8",
+                                "Santri Contoh Nomor 8",
+                                "VII C"
+                            ],
+                            [
+                                "9",
+                                "Santri Contoh Nomor 9",
+                                "VII A"
+                            ],
+                            [
+                                "10",
+                                "Santri Contoh Nomor 10",
+                                "VII B"
+                            ],
+                            [
+                                "11",
+                                "Santri Contoh Nomor 11",
+                                "VII C"
+                            ],
+                            [
+                                "12",
+                                "Santri Contoh Nomor 12",
+                                "VII A"
+                            ],
+                            [
+                                "13",
+                                "Santri Contoh Nomor 13",
+                                "VII B"
+                            ],
+                            [
+                                "14",
+                                "Santri Contoh Nomor 14",
+                                "VII C"
+                            ],
+                            [
+                                "15",
+                                "Santri Contoh Nomor 15",
+                                "VII A"
+                            ],
+                            [
+                                "16",
+                                "Santri Contoh Nomor 16",
+                                "VII B"
+                            ],
+                            [
+                                "17",
+                                "Santri Contoh Nomor 17",
+                                "VII C"
+                            ],
+                            [
+                                "18",
+                                "Santri Contoh Nomor 18",
+                                "VII A"
+                            ],
+                            [
+                                "19",
+                                "Santri Contoh Nomor 19",
+                                "VII B"
+                            ],
+                            [
+                                "20",
+                                "Santri Contoh Nomor 20",
+                                "VII C"
+                            ],
+                            [
+                                "21",
+                                "Santri Contoh Nomor 21",
+                                "VII A"
+                            ],
+                            [
+                                "22",
+                                "Santri Contoh Nomor 22",
+                                "VII B"
+                            ],
+                            [
+                                "23",
+                                "Santri Contoh Nomor 23",
+                                "VII C"
+                            ],
+                            [
+                                "24",
+                                "Santri Contoh Nomor 24",
+                                "VII A"
+                            ],
+                            [
+                                "25",
+                                "Santri Contoh Nomor 25",
+                                "VII B"
+                            ],
+                            [
+                                "26",
+                                "Santri Contoh Nomor 26",
+                                "VII C"
+                            ],
+                            [
+                                "27",
+                                "Santri Contoh Nomor 27",
+                                "VII A"
+                            ],
+                            [
+                                "28",
+                                "Santri Contoh Nomor 28",
+                                "VII B"
+                            ],
+                            [
+                                "29",
+                                "Santri Contoh Nomor 29",
+                                "VII C"
+                            ],
+                            [
+                                "30",
+                                "Santri Contoh Nomor 30",
+                                "VII A"
+                            ],
+                            [
+                                "31",
+                                "Santri Contoh Nomor 31",
+                                "VII B"
+                            ],
+                            [
+                                "32",
+                                "Santri Contoh Nomor 32",
+                                "VII C"
+                            ],
+                            [
+                                "33",
+                                "Santri Contoh Nomor 33",
+                                "VII A"
+                            ],
+                            [
+                                "34",
+                                "Santri Contoh Nomor 34",
+                                "VII B"
+                            ],
+                            [
+                                "35",
+                                "Santri Contoh Nomor 35",
+                                "VII C"
+                            ],
+                            [
+                                "36",
+                                "Santri Contoh Nomor 36",
+                                "VII A"
+                            ],
+                            [
+                                "37",
+                                "Santri Contoh Nomor 37",
+                                "VII B"
+                            ],
+                            [
+                                "38",
+                                "Santri Contoh Nomor 38",
+                                "VII C"
+                            ],
+                            [
+                                "39",
+                                "Santri Contoh Nomor 39",
+                                "VII A"
+                            ],
+                            [
+                                "40",
+                                "Santri Contoh Nomor 40",
+                                "VII B"
+                            ],
+                            [
+                                "41",
+                                "Santri Contoh Nomor 41",
+                                "VII C"
+                            ],
+                            [
+                                "42",
+                                "Santri Contoh Nomor 42",
+                                "VII A"
+                            ],
+                            [
+                                "43",
+                                "Santri Contoh Nomor 43",
+                                "VII B"
+                            ],
+                            [
+                                "44",
+                                "Santri Contoh Nomor 44",
+                                "VII C"
+                            ],
+                            [
+                                "45",
+                                "Santri Contoh Nomor 45",
+                                "VII A"
+                            ],
+                            [
+                                "46",
+                                "Santri Contoh Nomor 46",
+                                "VII B"
+                            ],
+                            [
+                                "47",
+                                "Santri Contoh Nomor 47",
+                                "VII C"
+                            ],
+                            [
+                                "48",
+                                "Santri Contoh Nomor 48",
+                                "VII A"
+                            ],
+                            [
+                                "49",
+                                "Santri Contoh Nomor 49",
+                                "VII B"
+                            ],
+                            [
+                                "50",
+                                "Santri Contoh Nomor 50",
+                                "VII C"
+                            ],
+                            [
+                                "51",
+                                "Santri Contoh Nomor 51",
+                                "VII A"
+                            ],
+                            [
+                                "52",
+                                "Santri Contoh Nomor 52",
+                                "VII B"
+                            ],
+                            [
+                                "53",
+                                "Santri Contoh Nomor 53",
+                                "VII C"
+                            ],
+                            [
+                                "54",
+                                "Santri Contoh Nomor 54",
+                                "VII A"
+                            ],
+                            [
+                                "55",
+                                "Santri Contoh Nomor 55",
+                                "VII B"
+                            ],
+                            [
+                                "56",
+                                "Santri Contoh Nomor 56",
+                                "VII C"
+                            ],
+                            [
+                                "57",
+                                "Santri Contoh Nomor 57",
+                                "VII A"
+                            ],
+                            [
+                                "58",
+                                "Santri Contoh Nomor 58",
+                                "VII B"
+                            ],
+                            [
+                                "59",
+                                "Santri Contoh Nomor 59",
+                                "VII C"
+                            ],
+                            [
+                                "60",
+                                "Santri Contoh Nomor 60",
+                                "VII A"
+                            ]
+                        ]
+                    }
+                },
+                {
+                    "id": "ttd",
+                    "type": "signature",
+                    "props": {
+                        "align": "right",
+                        "spaceMm": 25,
+                        "spaceBeforeMm": 10,
+                        "columns": [
+                            {
+                                "place": "Bandung",
+                                "date": "14 September 2026",
+                                "position": "Kepala Sekolah",
+                                "name": "Ustadz Ahmad Fauzi",
+                                "nip": "198001012005011001"
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        "footer": {
+            "repeat": "all",
+            "height": "auto",
+            "blocks": [
+                {
+                    "id": "fnum",
+                    "type": "paragraph",
+                    "props": {
+                        "text": "Halaman {{ page }} dari {{ pages }}",
+                        "align": "center",
+                        "spaceAfterMm": 0
+                    }
+                }
+            ]
+        }
+    }
+}

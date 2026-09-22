@@ -1,0 +1,88 @@
+{
+    "version": 1,
+    "page": {
+        "size": "A4",
+        "orientation": "portrait",
+        "margin": { "top": 20, "right": 20, "bottom": 20, "left": 25 }
+    },
+    "style": { "fontFamily": "tinos", "fontSize": 12, "lineHeight": 1.5 },
+    "zones": {
+        "header": {
+            "repeat": "first-only",
+            "height": "auto",
+            "blocks": [
+                {
+                    "id": "kop",
+                    "type": "letterhead",
+                    "props": {
+                        "showLogo": false,
+                        "line1": "{{ institution.name }}",
+                        "line2": "Lembaga Pendidikan Islam",
+                        "line3": "Jl. Merdeka No. 10, Bandung 40111",
+                        "line4": "Telp. 022-0000000 | info@nurulilmi.sch.id",
+                        "rule": "double"
+                    }
+                }
+            ]
+        },
+        "body": {
+            "blocks": [
+                {
+                    "id": "meta",
+                    "type": "letter-meta",
+                    "props": {
+                        "labelWidthMm": 25,
+                        "rows": [
+                            { "label": "Nomor", "value": "{{ letter.number }}" },
+                            { "label": "Lampiran", "value": "-" },
+                            { "label": "Hal", "value": "Surat Keterangan Aktif" }
+                        ]
+                    }
+                },
+                { "id": "sp1", "type": "spacer", "props": { "heightMm": 6 } },
+                {
+                    "id": "p1",
+                    "type": "paragraph",
+                    "props": {
+                        "text": "Yang bertanda tangan di bawah ini menerangkan bahwa <b>{{ student.name }}</b> benar merupakan santri aktif pada lembaga kami.",
+                        "align": "justify",
+                        "indentMm": 10
+                    }
+                },
+                {
+                    "id": "ttd",
+                    "type": "signature",
+                    "props": {
+                        "align": "right",
+                        "spaceMm": 25,
+                        "spaceBeforeMm": 10,
+                        "columns": [
+                            {
+                                "place": "Bandung",
+                                "date": "14 September 2026",
+                                "position": "Kepala Sekolah",
+                                "name": "Ustadz Ahmad Fauzi",
+                                "nip": "198001012005011001"
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        "footer": {
+            "repeat": "all",
+            "height": "auto",
+            "blocks": [
+                {
+                    "id": "fnum",
+                    "type": "paragraph",
+                    "props": {
+                        "text": "Halaman {{ page }} dari {{ pages }}",
+                        "align": "center",
+                        "spaceAfterMm": 0
+                    }
+                }
+            ]
+        }
+    }
+}

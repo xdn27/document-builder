@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "page": {
+    "size": "A4",
+    "orientation": "portrait",
+    "margin": {
+      "top": 20,
+      "right": 20,
+      "bottom": 20,
+      "left": 25
+    }
+  },
+  "style": {
+    "fontFamily": "tinos",
+    "fontSize": 12,
+    "lineHeight": 1.5
+  },
+  "zones": {
+    "header": {
+      "repeat": "first-only",
+      "height": "auto",
+      "blocks": [
+        {
+          "id": "kop",
+          "type": "letterhead-image",
+          "props": {
+            "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA+gAAACWCAIAAADCATWfAAAACXBIWXMAAA7EAAAOxAGVKw4bAAADKElEQVR4nO3WwRGAIADAMHFSR2NTHcEn9Egm6LPjvXY05uoCAACO9ez4yPfqAAAA4J9xBwCAAOMOAAABxh0AAAKMOwAABBh3AAAIMO4AABBg3AEAIMC4AwBAgHEHAIAA4w4AAAHGHQAAAow7AAAEGHcAAAgw7gAAEGDcAQAgwLgDAECAcQcAgADjDgAAAcYdAAACjDsAAAQYdwAACDDuAAAQYNwBACDAuAMAQIBxBwCAAOMOAAABxh0AAAKMOwAABBh3AAAIMO4AABBg3AEAIMC4AwBAgHEHAIAA4w4AAAHGHQAAAow7AAAEGHcAAAgw7gAAEGDcAQAgwLgDAECAcQcAgADjDgAAAcYdAAACjDsAAAQYdwAACDDuAAAQYNwBACDAuAMAQIBxBwCAAOMOAAABxh0AAAKMOwAABBh3AAAIMO4AABBg3AEAIMC4AwBAgHEHAIAA4w4AAAHGHQAAAow7AAAEGHcAAAgw7gAAEGDcAQAgwLgDAECAcQcAgADjDgAAAcYdAAACjDsAAAQYdwAACDDuAAAQYNwBACDAuAMAQIBxBwCAAOMOAAABxh0AAAKMOwAABBh3AAAIMO4AABBg3AEAIMC4AwBAgHEHAIAA4w4AAAHGHQAAAow7AAAEGHcAAAgw7gAAEGDcAQAgwLgDAECAcQcAgADjDgAAAcYdAAACjDsAAAQYdwAACDDuAAAQYNwBACDAuAMAQIBxBwCAAOMOAAABxh0AAAKMOwAABBh3AAAIMO4AABBg3AEAIMC4AwBAgHEHAIAA4w4AAAHGHQAAAow7AAAEGHcAAAgw7gAAEGDcAQAgwLgDAECAcQcAgADjDgAAAcYdAAACjDsAAAQYdwAACDDuAAAQYNwBACDAuAMAQIBxBwCAAOMOAAABxh0AAAKMOwAABBh3AAAIMO4AABBg3AEAIMC4AwBAgHEHAIAA4w4AAAHGHQAAAow7AAAEGHcAAAgw7gAAEGDcAQAgwLgDAECAcQcAgADjDgAAAcYdAAACjDsAAAQYdwAACDDuAAAQYNwBACDAuAMAQIBxBwCAAOMOAAABxh0AAAKMOwAABHxKcAQrnTn+7QAAAABJRU5ErkJggg==",
+            "alt": "Kop"
+          }
+        }
+      ]
+    },
+    "body": {
+      "blocks": [
+        {
+          "id": "meta",
+          "type": "letter-meta",
+          "props": {
+            "labelWidthMm": 25,
+            "rows": [
+              {
+                "label": "Nomor",
+                "value": "{{ letter.number }}"
+              },
+              {
+                "label": "Hal",
+                "value": "Verifikasi kop gambar full-bleed"
+              }
+            ]
+          }
+        },
+        {
+          "id": "sp1",
+          "type": "spacer",
+          "props": {
+            "heightMm": 6
+          }
+        },
+        {
+          "id": "p1",
+          "type": "paragraph",
+          "props": {
+            "text": "Paragraf ini dipakai untuk memastikan isi surat dimulai tepat di bawah kop gambar, tanpa tumpang tindih maupun celah yang tidak wajar.",
+            "align": "justify"
+          }
+        },
+        {
+          "id": "ttd",
+          "type": "signature",
+          "props": {
+            "align": "right",
+            "columns": [
+              {
+                "place": "Bandung",
+                "date": "{{ today.long }}",
+                "position": "Kepala Sekolah",
+                "name": "Ahmad",
+                "nip": "198001012000"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "footer": {
+      "blocks": []
+    }
+  }
+}

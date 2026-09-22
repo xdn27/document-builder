@@ -1,0 +1,302 @@
+/* Satu-satunya stylesheet dokumen. Dipakai identik oleh builder, cetak, dan PDF.
+   Semua panjang dalam mm, semua ukuran huruf dalam pt. Tidak ada aturan yang
+   menyasar selector html: dompdf dan mpdf menerapkannya ke frame halaman dan
+   margin @page ikut terhapus. */
+
+.doc-root {
+    /* Warna eksplisit, bukan currentColor: mpdf tidak mengenal kata kunci itu dan
+       mengembalikan warna kosong, sehingga garis tabel dan kop hilang di PDF. */
+    color: #000;
+    font-family: var(--db-font-family);
+    font-size: var(--db-font-size);
+    line-height: var(--db-line-height);
+}
+
+.doc-root * {
+    box-sizing: border-box;
+}
+
+/* Bentuk mengalir: dipakai mpdf dan menjadi masukan paginator di browser. */
+.doc-flow {
+    width: var(--db-content-w);
+}
+
+/* db:krom-halaman-mulai
+   Kotak halaman hanya dibuat paginator di browser. Engine PDF yang memaginasi
+   sendiri tidak pernah merendernya, jadi blok ini dibuang dari CSS mereka —
+   termasuk flexbox-nya, yang tidak dikenal mpdf. */
+
+/* Margin bawaan browser pada body menggeser seisi halaman menjauh dari tepi
+   kertas sungguhan. Selama ini tidak kentara karena margin dokumen sudah besar,
+   tapi kop yang sengaja menembus tepi kertas akan menyisakan celah putih tanpa
+   ini. mpdf tidak mengenal elemen body sama sekali, jadi aturan ini tidak perlu
+   ikut ke CSS-nya. */
+body {
+    margin: 0;
+}
+
+/* Bentuk terpaginasi: inilah yang dilihat di builder dan yang dikirim ke printer. */
+.doc-page {
+    width: var(--db-page-w);
+    height: var(--db-page-h);
+    padding: var(--db-mt) var(--db-mr) var(--db-mb) var(--db-ml);
+    background: #fff;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.doc-pages {
+    display: block;
+}
+
+.doc-page__header,
+.doc-page__footer {
+    flex: 0 0 auto;
+}
+
+.doc-page__body {
+    flex: 1 1 auto;
+    overflow: hidden;
+}
+
+/* db:krom-halaman-selesai */
+
+.doc-block {
+    break-inside: auto;
+}
+
+.doc-block[data-break-inside='avoid'] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+/* Penanda keadaan yang tidak bisa dirender. Sengaja mencolok supaya ketahuan
+   sebelum surat tercetak, bukan sesudah. */
+.db-marker {
+    display: inline-block;
+    padding: 1mm 2mm;
+    border: 0.3mm dashed #b00;
+    color: #b00;
+    font-size: 9pt;
+    font-style: italic;
+}
+
+.db-overflow {
+    outline: 0.5mm dashed #b00;
+}
+
+.db-selected {
+    outline: 0.6mm solid #206bc4;
+    outline-offset: 0.5mm;
+}
+
+.db-paragraph p {
+    margin: 0;
+}
+
+.db-letterhead__logo {
+    float: left;
+}
+
+.db-letterhead__text {
+    overflow: hidden;
+}
+
+.db-letterhead__line {
+    margin: 0;
+}
+
+.db-letterhead__line--1 {
+    font-size: 1.25em;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.db-letterhead__line--2 {
+    font-weight: bold;
+}
+
+.db-letterhead__line--3,
+.db-letterhead__line--4 {
+    font-size: 0.85em;
+}
+
+.db-letterhead__rule {
+    clear: both;
+    margin-top: 2mm;
+    border-top: 0.8mm solid #000;
+}
+
+.db-letterhead__rule--double {
+    border-bottom: 0.3mm solid #000;
+    height: 1mm;
+}
+
+/* Geometri (lebar, margin negatif) dihitung dan ditulis inline per instance oleh
+   LetterheadImageRenderer — nilainya bergantung rasio gambar dan margin halaman,
+   bukan konstanta yang bisa ditulis di sini. */
+.db-letterhead-image__bleed {
+    display: block;
+}
+
+.db-letterhead-image__img {
+    display: block;
+    width: 100%;
+}
+
+.db-letter-meta__table {
+    border-collapse: collapse;
+}
+
+/* Hanya melebar penuh saat ada kolom kanan (mis. tanggal) yang perlu didorong
+   ke tepi kanan area isi; tanpa itu tabel tetap sesempit isinya seperti semula. */
+.db-letter-meta__table--with-right {
+    width: 100%;
+}
+
+.db-letter-meta__label,
+.db-letter-meta__sep,
+.db-letter-meta__value,
+.db-letter-meta__right {
+    padding: 0;
+    vertical-align: top;
+}
+
+.db-letter-meta__sep {
+    width: 4mm;
+}
+
+.db-letter-meta__right {
+    padding-left: 4mm;
+}
+
+.db-table__table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.db-table__table--all .db-table__th,
+.db-table__table--all .db-table__td {
+    border: 0.25mm solid #000;
+}
+
+.db-table__table--horizontal .db-table__th,
+.db-table__table--horizontal .db-table__td {
+    border-top: 0.25mm solid #000;
+    border-bottom: 0.25mm solid #000;
+}
+
+.db-table__th,
+.db-table__td {
+    padding: 1mm 1.5mm;
+    vertical-align: top;
+}
+
+.db-table__th {
+    font-weight: bold;
+}
+
+.db-table__th--regular {
+    font-weight: normal;
+}
+
+/* Tanpa flexbox: mpdf tidak mengenalnya, dan daftar harus tampil sama di
+   browser maupun PDF. Marker inline-block berlebar tetap memberi hasil setara. */
+.db-list__item {
+    display: block;
+}
+
+.db-list__marker {
+    display: inline-block;
+    width: 6mm;
+    vertical-align: top;
+}
+
+.db-list__text {
+    display: inline;
+}
+
+/* Tinggi diatur inline per blok; aturan ini hanya menegaskan kotaknya block-level. */
+.db-spacer__box {
+    display: block;
+}
+
+.db-divider__rule {
+    display: block;
+    height: 0;
+}
+
+.db-image__img {
+    height: auto;
+    max-width: 100%;
+}
+
+.db-qrcode__svg svg {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.db-signature__table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.db-signature__cell {
+    vertical-align: top;
+    padding: 0;
+}
+
+/* Ruang tanda tangan: tinggi murni dari atribut height, tanpa padding atau baris
+   teks yang menambah tinggi berbeda di tiap engine. */
+.db-signature__space {
+    padding: 0;
+    font-size: 0;
+    line-height: 0;
+}
+
+.db-signature__image {
+    max-width: 100%;
+}
+
+.db-signature__name {
+    font-weight: bold;
+    text-decoration: underline;
+}
+
+.db-signature__nip {
+    font-size: 0.9em;
+}
+
+/* Krom layar: bayangan dan jarak antar halaman hanya untuk dibaca di monitor. */
+@media screen {
+    .doc-page {
+        margin: 0 auto 8mm;
+        box-shadow: 0 0 3mm rgba(0, 0, 0, 0.25);
+    }
+}
+
+@media print {
+    .doc-page {
+        margin: 0;
+        box-shadow: none;
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .doc-page:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    .db-overflow,
+    .db-selected {
+        outline: none;
+    }
+
+    .db-no-print {
+        display: none !important;
+    }
+}

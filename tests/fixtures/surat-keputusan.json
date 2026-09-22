@@ -1,0 +1,195 @@
+{
+    "version": 1,
+    "page": {
+        "size": "F4",
+        "orientation": "portrait",
+        "margin": {
+            "top": 20,
+            "right": 20,
+            "bottom": 20,
+            "left": 25
+        }
+    },
+    "style": {
+        "fontFamily": "tinos",
+        "fontSize": 12,
+        "lineHeight": 1.5
+    },
+    "zones": {
+        "header": {
+            "repeat": "first-only",
+            "height": "auto",
+            "blocks": [
+                {
+                    "id": "kop",
+                    "type": "letterhead",
+                    "props": {
+                        "showLogo": false,
+                        "line1": "{{ institution.name }}",
+                        "line2": "Lembaga Pendidikan Islam",
+                        "line3": "Jl. Merdeka No. 10, Bandung 40111",
+                        "line4": "Telp. 022-0000000",
+                        "rule": "double"
+                    }
+                }
+            ]
+        },
+        "body": {
+            "blocks": [
+                {
+                    "id": "judul",
+                    "type": "paragraph",
+                    "props": {
+                        "text": "<b>SURAT KEPUTUSAN KEPALA SEKOLAH</b><br />Nomor: {{ letter.number }}",
+                        "align": "center",
+                        "spaceAfterMm": 2
+                    }
+                },
+                {
+                    "id": "tentang",
+                    "type": "paragraph",
+                    "props": {
+                        "text": "tentang<br /><b>PENETAPAN WALI KELAS TAHUN PELAJARAN {{ today.year }}</b>",
+                        "align": "center",
+                        "spaceAfterMm": 6
+                    }
+                },
+                {
+                    "id": "menimbang-label",
+                    "type": "paragraph",
+                    "props": {
+                        "text": "<b>Menimbang</b>",
+                        "align": "left",
+                        "spaceAfterMm": 1
+                    }
+                },
+                {
+                    "id": "menimbang",
+                    "type": "list",
+                    "props": {
+                        "style": "number",
+                        "indentMm": 8,
+                        "items": [
+                            {
+                                "text": "bahwa untuk kelancaran kegiatan belajar mengajar diperlukan wali kelas pada setiap rombongan belajar;",
+                                "level": 0
+                            },
+                            {
+                                "text": "bahwa pegawai yang namanya tercantum dalam lampiran keputusan ini dipandang cakap dan memenuhi syarat;",
+                                "level": 0
+                            },
+                            {
+                                "text": "bahwa berdasarkan pertimbangan sebagaimana dimaksud pada huruf a dan b perlu menetapkan keputusan.",
+                                "level": 0
+                            }
+                        ]
+                    }
+                },
+                {
+                    "id": "mengingat-label",
+                    "type": "paragraph",
+                    "props": {
+                        "text": "<b>Mengingat</b>",
+                        "align": "left",
+                        "spaceAfterMm": 1
+                    }
+                },
+                {
+                    "id": "mengingat",
+                    "type": "list",
+                    "props": {
+                        "style": "number",
+                        "indentMm": 8,
+                        "items": [
+                            {
+                                "text": "Undang-Undang Nomor 20 Tahun 2003 tentang Sistem Pendidikan Nasional;",
+                                "level": 0
+                            },
+                            {
+                                "text": "Peraturan Pemerintah tentang Standar Nasional Pendidikan, beserta perubahannya:",
+                                "level": 0
+                            },
+                            {
+                                "text": "ketentuan mengenai standar pengelolaan;",
+                                "level": 1
+                            },
+                            {
+                                "text": "ketentuan mengenai standar pendidik dan tenaga kependidikan;",
+                                "level": 1
+                            },
+                            {
+                                "text": "Anggaran Dasar dan Anggaran Rumah Tangga Yayasan.",
+                                "level": 0
+                            }
+                        ]
+                    }
+                },
+                {
+                    "id": "memutuskan",
+                    "type": "paragraph",
+                    "props": {
+                        "text": "<b>MEMUTUSKAN</b>",
+                        "align": "center",
+                        "spaceBeforeMm": 4,
+                        "spaceAfterMm": 2
+                    }
+                },
+                {
+                    "id": "menetapkan",
+                    "type": "list",
+                    "props": {
+                        "style": "number",
+                        "indentMm": 8,
+                        "items": [
+                            {
+                                "text": "Menetapkan pegawai sebagaimana tercantum dalam lampiran sebagai wali kelas.",
+                                "level": 0
+                            },
+                            {
+                                "text": "Wali kelas bertugas membina, membimbing, dan melaporkan perkembangan peserta didik.",
+                                "level": 0
+                            },
+                            {
+                                "text": "Keputusan ini berlaku sejak tanggal ditetapkan.",
+                                "level": 0
+                            }
+                        ]
+                    }
+                },
+                {
+                    "id": "ttd",
+                    "type": "signature",
+                    "props": {
+                        "align": "right",
+                        "spaceMm": 25,
+                        "spaceBeforeMm": 10,
+                        "columns": [
+                            {
+                                "place": "{{ letter.city }}",
+                                "date": "{{ today.long }}",
+                                "position": "Kepala Sekolah",
+                                "name": "{{ employee.name }}",
+                                "nip": "{{ employee.nip }}"
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        "footer": {
+            "repeat": "all",
+            "height": "auto",
+            "blocks": [
+                {
+                    "id": "fnum",
+                    "type": "paragraph",
+                    "props": {
+                        "text": "Halaman {{ page }} dari {{ pages }}",
+                        "align": "center",
+                        "spaceAfterMm": 0
+                    }
+                }
+            ]
+        }
+    }
+}
