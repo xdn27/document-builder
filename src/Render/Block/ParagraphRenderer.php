@@ -7,6 +7,7 @@ use Maqiis\DocumentBuilder\Schema\Block;
 use Maqiis\DocumentBuilder\Schema\BlockType;
 use Maqiis\DocumentBuilder\Support\Mm;
 
+/** @internal Detail implementasi, bebas berubah di rilis minor — lihat "API publik" di README. */
 final class ParagraphRenderer implements BlockRenderer
 {
     public function type(): BlockType

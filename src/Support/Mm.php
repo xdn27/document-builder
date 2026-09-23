@@ -6,6 +6,8 @@ namespace Maqiis\DocumentBuilder\Support;
  * Semua panjang di dalam package dinyatakan dalam milimeter. Kelas ini satu-satunya
  * tempat konversi satuan terjadi, sehingga paginator, kotak @page, dan engine PDF
  * selalu bicara dalam angka yang sama.
+ *
+ * @internal Detail implementasi, bebas berubah di rilis minor — lihat "API publik" di README.
  */
 final class Mm
 {

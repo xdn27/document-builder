@@ -16,6 +16,8 @@ use Maqiis\DocumentBuilder\Support\Mm;
  *   dihormati mpdf maupun browser.
  * - Nama di semua kolom berada di baris yang sama, jadi jabatan yang membungkus ke
  *   dua baris di satu kolom tidak menggeser nama di kolom lain.
+ *
+ * @internal Detail implementasi, bebas berubah di rilis minor — lihat "API publik" di README.
  */
 final class SignatureRenderer implements BlockRenderer
 {

@@ -10,6 +10,8 @@ use Throwable;
  * Memakai milon/barcode yang sudah terpasang di aplikasi, sehingga tidak ada
  * dependensi Composer baru. Keluarannya SVG inline agar tajam di layar maupun
  * cetak dan tidak memerlukan berkas sementara.
+ *
+ * @internal Detail implementasi, bebas berubah di rilis minor — lihat "API publik" di README.
  */
 final class MilonQrCodeGenerator implements QrCodeGenerator
 {

@@ -35,6 +35,8 @@ use Maqiis\DocumentBuilder\Support\Mm;
  * Zona yang memuat blok ini wajib bertinggi "auto" — SchemaValidator memaksakannya.
  * Zona bertinggi tetap dipasangi overflow:hidden oleh paginator, dan itu akan
  * memotong bagian gambar yang sengaja menembus ke atas margin.
+ *
+ * @internal Detail implementasi, bebas berubah di rilis minor — lihat "API publik" di README.
  */
 final class LetterheadImageRenderer implements BlockRenderer
 {

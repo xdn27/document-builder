@@ -7,6 +7,8 @@ namespace Maqiis\DocumentBuilder\Media;
  * yang perlu menghitung tinggi dari rasio gambar, maupun oleh HtmlRenderer
  * yang perlu menaksir cadangan tinggi kop untuk engine yang memaginasi
  * sendiri. Lihat ImageResolver untuk peran $resolver pada ratio().
+ *
+ * @internal Detail implementasi, bebas berubah di rilis minor — lihat "API publik" di README.
  */
 final class ImageDimensions
 {

@@ -14,6 +14,8 @@ use Maqiis\DocumentBuilder\Media\ImageResolver;
  * Otomatis jadi no-op saat strategi aktif adalah DataUriImageUploadStorage:
  * resolveLocalPath()-nya selalu null, jadi resolve() di sini selalu
  * mengembalikan $src apa adanya.
+ *
+ * @internal Detail implementasi, bebas berubah di rilis minor — lihat "API publik" di README.
  */
 final class StorageImageResolver implements ImageResolver
 {

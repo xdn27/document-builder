@@ -1,105 +1,118 @@
 # Tutorial: Instalasi & Penggunaan `document-builder`
 
-Dokumen ini adalah panduan praktis langkah-demi-langkah. Untuk arsitektur, alasan desain, dan
-detail ekstensibilitas, baca `README.md` di folder yang sama — file ini sengaja tidak
-mengulanginya.
+Panduan praktis. Arsitektur dan alasan desain ada di `README.md` — tidak diulang di sini.
 
-Ditujukan untuk dua pembaca:
+- **Pengembang** yang memasang package: pilih **1A** (Blade + Livewire) atau **1B** (Inertia + React),
+  lalu baca **1C** (referensi bersama).
+- **Admin/staf** yang menyusun surat: langsung ke **2. Cara Penggunaan**.
 
-- **Pengembang** yang memasang package ini di sebuah project Laravel (bagian "Instalasi").
-- **Admin/staf** yang menyusun surat lewat halaman builder (bagian "Cara Penggunaan").
+Kalau Anda harus membuka kode package atau bertanya untuk bisa memasangnya, itu bug dokumentasi —
+laporkan.
 
 ---
 
-## 1. Instalasi
+## 1A. Quickstart: Blade + Livewire
 
-Package ini **tidak dipasang lewat `composer require`** dari Packagist — sumbernya ditaruh
-langsung di dalam repo (`packages/document-builder/`) dan dikenalkan ke Composer lewat
-pemetaan PSR-4 manual. Contoh nyatanya sudah berjalan di project ini; ikuti langkah yang sama
-untuk memasangnya di project Laravel lain.
+Prasyarat: Laravel 10+, PHP 8.1+, Livewire 2.12 atau 3, Bootstrap 5 di layout Anda.
 
-### 1.1 Prasyarat
-
-- Laravel 10, PHP 8.1+
-- Livewire 2.x (panel builder adalah komponen Livewire)
-- `mpdf/mpdf` bila ingin ekspor PDF (engine bawaan)
-- Model Eloquent untuk menyimpan template — package **tidak** menyediakan migrasi atau model,
-  hanya memvalidasi dan merender schema JSON-nya (lihat 1.4)
-
-### 1.2 Salin sumber & daftarkan autoload
-
-Taruh folder `document-builder/` di `packages/`, lalu tambahkan namespace-nya ke `composer.json`
-root project (bukan `repositories` + `require`, karena package ini tidak punya `composer.json`
-yang berdiri sendiri sebagai paket terinstal):
+**1. Pasang paketnya.** Sebelum paket punya repo sendiri, pakai repository `path` ke salinan
+sumbernya:
 
 ```json
-{
-    "autoload": {
-        "psr-4": {
-            "Maqiis\\DocumentBuilder\\": "packages/document-builder/src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Maqiis\\DocumentBuilder\\Tests\\": "packages/document-builder/tests/"
-        }
-    }
-}
+"repositories": [{ "type": "path", "url": "../akademik-maqiis/packages/document-builder" }]
 ```
-
-Jalankan `composer dump-autoload` setelahnya.
-
-### 1.3 Daftarkan service provider secara manual
-
-Karena package ini bukan paket Composer yang "terinstal" sungguhan, mekanisme
-**auto-discovery Laravel tidak akan menemukannya** — provider harus didaftarkan tangan di
-`config/app.php`:
-
-```php
-'providers' => [
-    // ...
-    Maqiis\DocumentBuilder\Laravel\DocumentBuilderServiceProvider::class,
-],
-```
-
-`DocumentBuilderServiceProvider` inilah yang mengikat `PdfEngine`, `ImageSourcePolicy`,
-`QrCodeGenerator`, dan `ImageUploadStorage`/`ImageResolver` ke container — tidak ada binding
-lain yang perlu ditambahkan di project Anda sendiri.
-
-### 1.4 Publish & sesuaikan konfigurasi
 
 ```bash
-php artisan vendor:publish --tag=document-builder-config
+composer require maqiis/document-builder:@dev mpdf/mpdf
 ```
 
-Ini menyalin `config/document-builder.php` ke project Anda. Opsi pentingnya:
+Service provider terdaftar otomatis (auto-discovery).
+
+**2. Jalankan installer.**
+
+```bash
+php artisan document-builder:install
+php artisan migrate
+```
+
+Installer mem-publish `config/document-builder.php` dan migration `document_templates` (kolom `name`
+dan `schema`; tambahkan kolom milik Anda sebelum `migrate`), mencetak empat langkah manual di bawah,
+lalu menjalankan `document-builder:doctor`. Menjalankannya ulang aman: berkas yang sudah ada dilewati
+kecuali dengan `--force`.
+
+**3. Empat langkah yang Anda tulis sendiri** — salinan siap pakai ada di
+`examples/livewire/`:
+
+1. **Model** — `implements TemplateRecord` + `use IsTemplateRecord`, dan tulis
+   `authorizeTemplateView()` sendiri (trait sengaja tidak menyediakannya: aturan akses lihat adalah
+   keputusan aplikasi).
+2. **Katalog variabel** — bind `Maqiis\DocumentBuilder\Variable\VariableRegistry` secara `scoped` di
+   service provider.
+3. **Route + view pembungkus** yang memasang
+   `@livewire('document-builder::template-builder', ['template' => $template])`.
+4. **Config** — isi `document-builder.livewire.index_route`, `print_route`, `print_ability`,
+   `update_ability`; pastikan ability update ada di sistem permission Anda.
+
+> **Layout wajib punya `@stack('script')` sesudah `@livewireScripts`.** View builder mendorong
+> skrip kanvasnya ke stack bernama `script` (tunggal). Layout yang hanya punya `@stack('scripts')`
+> membuat kanvas tidak pernah hidup — tanpa error apa pun.
+
+**4. Sambungkan toast.** Package mengirim event netral; tentukan sendiri cara menampilkannya:
+
+```html
+<script>window.documentBuilderNotify = (detail) => Swal.fire({ toast: true, icon: detail.level, title: detail.message });</script>
+```
+
+**5. Periksa.** `php artisan document-builder:doctor` harus tanpa `FAIL`. Buka halaman builder,
+tambah blok — blok harus langsung muncul di kanvas.
+
+## 1B. Quickstart: Inertia + React
+
+Langkah 1–2 sama dengan 1A (Livewire tidak dibutuhkan). Lalu, dari `examples/inertia-react/`:
+
+1. **Model & katalog variabel** — sama dengan 1A langkah 3.1–3.2.
+2. **Controller** — tiga method: `show` (props awal dari `ContractPayload::forRegistry()`),
+   `preview` (render `{html, css}` dan kembalikan `revision` apa adanya), `save`
+   (`Template::fromArray($schema, SchemaValidator::MAX_BYTES)` — batas ukuran hanya di jalur tulis).
+3. **Alias Vite** — `@document-builder` → `vendor/maqiis/document-builder/resources/js`. Tidak ada
+   paket npm; kode JS selalu versi yang sama dengan PHP yang terpasang.
+4. **Halaman React** — bangun palet dan inspektor dari `contract.blockPropSchema` (label dan grup
+   sudah ada di sana, jangan tulis ulang), lalu setelah menaruh `{html, css}` ke DOM panggil
+   `paginateDocument({ document, root })`.
+
+Tiga aturan yang tidak boleh dilewatkan:
+
+- **Periksa `contract.contract`** dan gagal keras bila tidak cocok — jangan merender inspektor
+  separuh jadi.
+- **Pratinjau:** debounce 300–500 ms, batalkan request yang masih terbang (`AbortController`), dan
+  buang respons yang `revision`-nya lebih kecil dari yang terakhir dilukis.
+- **Tipe blok atau properti yang tidak dikenal** ditampilkan sebagai penanda dan dipertahankan saat
+  menyimpan — jangan crash. Aturan inilah yang membuat penambahan tipe blok baru cukup rilis minor.
+
+## 1C. Referensi bersama
+
+### Konfigurasi
 
 | Key | Env | Bawaan | Kegunaan |
 |---|---|---|---|
-| `engine` | `DOCUMENT_BUILDER_PDF_ENGINE` | `mpdf` | Engine PDF aktif — `mpdf` atau `gotenberg` |
-| `engines.gotenberg.base_url` | `GOTENBERG_URL` | `http://gotenberg:3000` | URL layanan Gotenberg (lihat §1.4.1) — hanya dipakai saat `engine=gotenberg` |
-| `images.allow_data_uri` | — | `true` | Izinkan gambar sebagai data URI base64 |
-| `images.allowed_prefixes` | — | `[]` | Awalan URL gambar tambahan yang dipercaya (di luar disk `/storage` yang sudah otomatis) |
-| `images.upload_strategy` | `DOCUMENT_BUILDER_UPLOAD_STRATEGY` | `data-uri` | `data-uri` (tempel base64 ke schema) atau `filesystem` (simpan ke disk, tulis URL-nya saja) |
-| `images.upload_disk` | `DOCUMENT_BUILDER_UPLOAD_DISK` | `public` | Disk Laravel tujuan saat strategi `filesystem` — **harus** disk yang benar-benar bisa diakses browser (punya config `url`), jangan disk privat seperti `local` bawaan Laravel |
-| `images.upload_directory` | `DOCUMENT_BUILDER_UPLOAD_DIRECTORY` | `document-builder` | Sub-folder di dalam disk tujuan |
+| `engine` | `DOCUMENT_BUILDER_PDF_ENGINE` | `mpdf` | `mpdf` atau `gotenberg` |
+| `engines.gotenberg.base_url` | `GOTENBERG_URL` | `http://gotenberg:3000` | Hanya dipakai saat `engine=gotenberg` |
+| `images.allow_data_uri` | — | `true` | Izinkan gambar data URI |
+| `images.allowed_prefixes` | — | `[]` | Awalan URL gambar tambahan yang dipercaya. **Jangan pernah berisi string kosong** — `doctor` menandainya GAGAL |
+| `images.upload_strategy` | `DOCUMENT_BUILDER_UPLOAD_STRATEGY` | `filesystem` | `filesystem` (disarankan) atau `data-uri` |
+| `images.upload_disk` | `DOCUMENT_BUILDER_UPLOAD_DISK` | `public` | Disk yang bisa diakses browser; jalankan `php artisan storage:link` |
+| `images.upload_directory` | `DOCUMENT_BUILDER_UPLOAD_DIRECTORY` | `document-builder` | Sub-folder di disk tujuan |
+| `livewire.block_palette` | — | lihat config | Isi awal tiap blok baru |
+| `livewire.index_route`, `print_route` | — | `null` | Nama route aplikasi; `null` = tautan tidak dirender |
+| `livewire.print_ability`, `update_ability` | — | `null`, `update-document-template` | Ability yang diperiksa view |
 
-Kalau memakai `upload_strategy=filesystem` dengan disk lokal, jalankan juga:
+`mergeConfigFrom()` Laravel hanya menggabung di level teratas: kunci baru yang ditambahkan package
+**di dalam** blok yang sudah Anda publish tidak muncul otomatis — salin manual saat naik versi (lihat
+`UPGRADING.md`).
 
-```bash
-php artisan storage:link
-```
+### Engine PDF Gotenberg
 
-#### 1.4.1 (Opsional) Engine PDF Gotenberg — kesetiaan Chromium tanpa penyesuaian manual
-
-`GotenbergEngine` merender lewat layanan terpisah yang membungkus Chromium sungguhan, memakai HTML
-kanvas yang sama persis dengan builder — kesetiaan layar=cetak didapat gratis tanpa penyesuaian tata
-letak manual seperti yang dilakukan `MpdfEngine` (mis. `neutralizeTopBleed()`). Semua font, termasuk
-Almarai, sudah didukung penuh di kedua engine; pertimbangkan Gotenberg terutama kalau Anda ingin
-menghindari sepenuhnya jalur pemaginasian mpdf sendiri dan lebih memercayakan hasil cetak ke mesin
-render browser yang sama dipakai kanvas.
-
-Jalankan sebagai container terpisah (tambahkan ke `compose.yml` Anda):
+Tambahkan ke `compose.yml`:
 
 ```yaml
 gotenberg:
@@ -107,128 +120,44 @@ gotenberg:
   restart: unless-stopped
 ```
 
-Lalu set di `.env`:
+lalu `DOCUMENT_BUILDER_PDF_ENGINE=gotenberg` dan `GOTENBERG_URL=http://gotenberg:3000`. Gotenberg
+merender HTML kanvas yang sama persis lewat Chromium. `doctor` memeriksa layanannya terjangkau.
 
-```
-DOCUMENT_BUILDER_PDF_ENGINE=gotenberg
-GOTENBERG_URL=http://gotenberg:3000
-```
+### Render, cetak, dan PDF
 
-Tidak perlu langkah lain — `GotenbergEngine` memakai HTML kanvas yang sama persis, jadi kesetiaan
-layar=cetak justru lebih terjamin dibanding mpdf.
-
-### 1.5 Model & migrasi Eloquent (tanggung jawab project Anda)
-
-Package hanya tahu cara memvalidasi dan merender **array** schema — cara Anda menyimpannya
-terserah Anda. Di project ini, modelnya (`App\Models\DocumentBuilder\DocumentTemplate`) sengaja
-berada di app, bukan di package:
+Semua lewat `Maqiis\DocumentBuilder\Laravel\DocumentRenderer` dari container — jangan menyusun HTML
+surat lewat Blade sendiri:
 
 ```php
-class DocumentTemplate extends Model
-{
-    protected $casts = ['schema' => 'array', 'is_active' => 'boolean'];
+$document = app(DocumentRenderer::class)->render($model->template());   // atau Template::fromArray($array)
 
-    public function template(): \Maqiis\DocumentBuilder\Schema\Template
-    {
-        return \Maqiis\DocumentBuilder\Schema\Template::fromArray($this->schema ?? []);
-    }
-}
+$document->fullHtml(autoPrint: true);        // halaman cetak
+app(PdfEngine::class)->render($document);    // bytes PDF
+$document->flowHtml();                       // HTML mengalir untuk kanvas
 ```
 
-Kolom minimal yang dibutuhkan: `name` (string) dan `schema` (json). Kolom lain
-(`branch_id`, `category`, `is_active`, dll.) murni kebutuhan aplikasi Anda — lihat
-`database/migrations/2026_09_14_000001_create_document_templates_table.php` sebagai contoh.
+### Bahasa label
 
-### 1.6 Render, cetak, dan PDF lewat satu pintu
+Label bawaan bahasa Indonesia. Untuk bahasa lain, buat
+`lang/vendor/document-builder/{locale}/labels.php` dengan kunci `prop`, `value`, `group`, dan `block`,
+misalnya `['prop' => ['align' => 'Alignment'], 'block' => ['paragraph' => 'Paragraph']]`. Kunci yang
+tidak diterjemahkan tetap tampil dalam bahasa Indonesia.
 
-Jangan menyusun HTML surat sendiri lewat view Blade — itu akan membuat tampilan layar dan hasil
-cetak berbeda. Buat satu service tipis yang membungkus `HtmlRenderer`, seperti
-`App\Services\DocumentBuilder\DocumentRenderer` di project ini:
+### Tidak ada langkah build aset
 
-```php
-class DocumentRenderer
-{
-    public function __construct(
-        private readonly VariableCatalog $catalog,   // registry variabel Anda sendiri
-        private readonly ImageSourcePolicy $images,   // dari container, sudah diikat provider
-        private readonly QrCodeGenerator $qr,         // dari container
-        private readonly ImageResolver $imageResolver, // dari container
-    ) {}
+CSS dokumen dan JS paginator disisipkan inline lewat `AssetLoader` — tidak ada yang dipublish ke
+`public/`, jadi kanvas dan hasil cetak tidak pernah memakai versi aset yang berbeda.
 
-    public function render(Template $template, ?VariableResolver $resolver = null): RenderedDocument
-    {
-        $context = new RenderContext(
-            $template->style, $template->page, new HtmlSanitizer,
-            new VariableSyntax($resolver ?? $this->catalog->registry()->sampleResolver()),
-            $this->images, $this->qr, $this->imageResolver,
-        );
-
-        return (new HtmlRenderer)->render($template, $context);
-    }
-}
-```
-
-Tiga pemakaian `RenderedDocument` yang dihasilkan:
-
-```php
-$document = $renderer->render($template);
-
-$document->fullHtml(autoPrint: true);   // halaman cetak siap window.print()
-(new MpdfEngine)->render($document);    // bytes PDF (atau resolve PdfEngine dari container)
-$document->flowHtml();                  // HTML mengalir untuk disuntik ke kanvas builder
-```
-
-### 1.7 Routes, controller, permission, dan menu
-
-Tidak ada route bawaan dari package — buat sendiri sesuai kebutuhan navigasi aplikasi Anda.
-Pola minimal yang dipakai di project ini (lihat `routes/admin/document-builder.php` dan
-`app/Http/Controllers/Admin/DocumentBuilder/DocumentTemplateController.php`):
-
-```php
-Route::prefix('document-template')->name('document-template.')->group(function () {
-    Route::get('/', [DocumentTemplateController::class, 'index'])->name('index');
-    Route::get('{documentTemplate}/builder', [DocumentTemplateController::class, 'builder'])->name('builder');
-    Route::get('{documentTemplate}/print', [DocumentTemplateController::class, 'print'])->name('print');
-    Route::get('{documentTemplate}/pdf', [DocumentTemplateController::class, 'pdf'])->name('pdf');
-});
-```
-
-Membuat, menyunting, dan menghapus baris template ditangani komponen Livewire di halaman daftar
-(`ShowDocumentTemplate`) — tidak perlu route `store`/`update`/`destroy` terpisah. Menyusun isi
-surat (blok-blok di dalamnya) ditangani komponen Livewire terpisah di halaman builder
-(`TemplateBuilder`).
-
-Permission yang lazim dipakai (sesuaikan dengan sistem otorisasi Anda sendiri):
-`read-document-template`, `create-document-template`, `update-document-template`,
-`delete-document-template`, `print-document-template`.
-
-### 1.8 Tidak ada langkah build aset
-
-JS paginator dan CSS dokumen **disisipkan inline** ke halaman lewat
-`Maqiis\DocumentBuilder\Asset\AssetLoader` — tidak ada `npm install`, tidak ada langkah Vite,
-tidak ada file untuk di-publish ke `public/`. Ini sengaja: aset yang basi (beda versi antara
-yang dipakai kanvas dan yang dipakai cetak) adalah sumber bug paling berbahaya untuk package
-ini, jadi keduanya selalu dibaca langsung dari `packages/document-builder/resources/` saat
-request diproses.
-
-```blade
-<script>
-    (function() {
-        {!! \Maqiis\DocumentBuilder\Asset\AssetLoader::bundledJs() !!}
-        document.addEventListener('livewire:load', () => initBuilder({ /* ... */ }));
-    })();
-</script>
-```
-
-### 1.9 Verifikasi instalasi
+### Verifikasi
 
 ```bash
-./vendor/bin/phpunit --testsuite=DocumentBuilder
-node --test "packages/document-builder/tests/js/*.test.mjs"
+php artisan document-builder:doctor
+vendor/bin/document-builder-verify-print vendor/maqiis/document-builder/tests/fixtures/surat-tabel-panjang.json 3
 ```
 
-Kalau keduanya lulus, buka halaman daftar template di browser, buat satu template baru, dan
-pastikan builder terbuka tanpa galat di console.
+`verify-print` butuh Chrome di host (`CHROME_BIN`). Bila PHP Anda di container, setel
+`DOCUMENT_BUILDER_CONTAINER=<nama>` (preview di `/app/packages/document-builder`) atau
+`DOCUMENT_BUILDER_PHP` + `DOCUMENT_BUILDER_PREVIEW`.
 
 ---
 
@@ -312,7 +241,7 @@ Setiap properti bergambar (kop gambar, blok gambar, gambar tanda tangan per kolo
 **Unggah gambar** di inspektor — menerima PNG, JPG, atau WEBP, maksimal 2 MB. Ada juga kolom teks
 di bawahnya untuk menempel data URI atau URL secara manual bila diperlukan.
 
-Ke mana berkas itu tersimpan bergantung `document-builder.images.upload_strategy` (lihat §1.4):
+Ke mana berkas itu tersimpan bergantung `document-builder.images.upload_strategy` (lihat §1C, "Konfigurasi"):
 ditempel sebagai base64 langsung ke template (`data-uri`, bawaan), atau disimpan ke disk dan
 hanya URL-nya yang dicatat (`filesystem`).
 

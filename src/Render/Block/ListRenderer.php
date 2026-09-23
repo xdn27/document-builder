@@ -11,6 +11,8 @@ use Maqiis\DocumentBuilder\Support\Mm;
  * Penomoran dihitung di PHP, bukan diserahkan ke list-style CSS. Dukungan
  * list-style bertingkat berbeda-beda antar engine PDF, sedangkan surat resmi
  * Indonesia menuntut pola 1. / a. / 1) yang persis.
+ *
+ * @internal Detail implementasi, bebas berubah di rilis minor — lihat "API publik" di README.
  */
 final class ListRenderer implements BlockRenderer
 {

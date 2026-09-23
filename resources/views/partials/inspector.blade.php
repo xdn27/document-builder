@@ -11,7 +11,7 @@
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <div>
-            <h6 class="mb-0">{{ $blockType?->label() ?? 'Inspektor' }}</h6>
+            <h6 class="mb-0">{{ $blockType?->label($labelTranslator) ?? 'Inspektor' }}</h6>
             <small class="text-muted">
                 {{ $block ? 'Zona ' . ['header' => 'kop', 'body' => 'isi', 'footer' => 'kaki'][$selectedZone] : 'Pilih blok untuk menyunting' }}
             </small>

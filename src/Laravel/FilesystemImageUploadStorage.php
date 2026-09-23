@@ -16,6 +16,8 @@ use RuntimeException;
  *
  * Berkas lama tidak otomatis dihapus saat sebuah blok diunggah ulang —
  * pembersihan berkas yatim (orphan) belum ditangani di sini.
+ *
+ * @internal Detail implementasi, bebas berubah di rilis minor — lihat "API publik" di README.
  */
 final class FilesystemImageUploadStorage implements ImageUploadStorage
 {

@@ -10,6 +10,8 @@ use Illuminate\Http\UploadedFile;
  * lolos ImageSourcePolicy tanpa konfigurasi tambahan — cocok sebagai default
  * yang aman, atau untuk instalasi yang sengaja tidak mau menyimpan berkas ke
  * disk (mis. tidak ada storage bersama antar server).
+ *
+ * @internal Detail implementasi, bebas berubah di rilis minor — lihat "API publik" di README.
  */
 final class DataUriImageUploadStorage implements ImageUploadStorage
 {

@@ -5,12 +5,14 @@ namespace Maqiis\DocumentBuilder\Laravel;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
+use Maqiis\DocumentBuilder\Contract\ContractPayload;
 use Maqiis\DocumentBuilder\Media\ImageResolver;
 use Maqiis\DocumentBuilder\Media\ImageSourcePolicy;
 use Maqiis\DocumentBuilder\Pdf\GotenbergEngine;
 use Maqiis\DocumentBuilder\Pdf\MpdfEngine;
 use Maqiis\DocumentBuilder\Pdf\PdfEngine;
 use Maqiis\DocumentBuilder\Qr\QrCodeGenerator;
+use Maqiis\DocumentBuilder\Schema\LabelTranslator;
 use Maqiis\DocumentBuilder\Schema\PropCatalog;
 use Maqiis\DocumentBuilder\Variable\VariableRegistry;
 
@@ -95,9 +97,15 @@ class DocumentBuilderServiceProvider extends ServiceProvider
         */
         $this->app->scoped(VariableRegistry::class, fn (): VariableRegistry => new VariableRegistry);
 
-        // Tanpa penerjemah = label bahasa Indonesia bawaan. Aplikasi yang ingin
-        // bahasa lain mem-bind ulang dengan LabelTranslator-nya (spec §18).
-        $this->app->singleton(PropCatalog::class, fn (): PropCatalog => new PropCatalog);
+        /*
+        | Label dibaca lewat penerjemah Laravel (namespace "document-builder",
+        | grup "labels"). Tanpa berkas terjemahan, TransLabelTranslator
+        | mengembalikan teks Indonesia bawaan — tidak ada teks yang berubah.
+        | Locale dibaca saat label diminta, jadi singleton aman.
+        */
+        $this->app->singleton(LabelTranslator::class, fn ($app): LabelTranslator => new TransLabelTranslator($app['translator']));
+        $this->app->singleton(PropCatalog::class, fn ($app): PropCatalog => new PropCatalog($app->make(LabelTranslator::class)));
+        $this->app->bind(ContractPayload::class, fn ($app): ContractPayload => new ContractPayload($app->make(LabelTranslator::class)));
 
         /*
         | Scoped, bukan singleton: renderer memegang VariableRegistry yang juga
@@ -114,15 +122,31 @@ class DocumentBuilderServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadViewsFrom(dirname(__DIR__, 2).'/resources/views', 'document-builder');
+        $package = dirname(__DIR__, 2);
 
-        $this->publishes([
-            __DIR__.'/config/document-builder.php' => config_path('document-builder.php'),
-        ], 'document-builder-config');
+        $this->loadViewsFrom($package.'/resources/views', 'document-builder');
+        $this->loadTranslationsFrom($package.'/resources/lang', 'document-builder');
 
-        $this->publishes([
-            dirname(__DIR__, 2).'/resources/views' => resource_path('views/vendor/document-builder'),
-        ], 'document-builder-views');
+        if ($this->app->runningInConsole()) {
+            // Satu prefix yang bisa ditebak, plus tag agregat "document-builder"
+            // untuk yang ingin semuanya sekaligus (spec §16.3).
+            $this->publishes([
+                __DIR__.'/config/document-builder.php' => config_path('document-builder.php'),
+            ], ['document-builder-config', 'document-builder']);
+
+            $this->publishes([
+                $package.'/resources/views' => resource_path('views/vendor/document-builder'),
+            ], ['document-builder-views', 'document-builder']);
+
+            $this->publishes([
+                $package.'/database/migrations/create_document_templates_table.php.stub' => $this->migrationTarget(),
+            ], ['document-builder-migrations', 'document-builder']);
+
+            $this->commands([
+                Console\InstallCommand::class,
+                Console\DoctorCommand::class,
+            ]);
+        }
 
         /*
         | Livewire adalah dependency OPSIONAL (require-dev + suggest): aplikasi
@@ -133,5 +157,17 @@ class DocumentBuilderServiceProvider extends ServiceProvider
         if (class_exists(\Livewire\Livewire::class)) {
             \Livewire\Livewire::component('document-builder::template-builder', Livewire\TemplateBuilder::class);
         }
+    }
+
+    /**
+     * Publish ulang — atau install yang dijalankan dua kali — tidak boleh
+     * menghasilkan migration kembar bertimestamp baru: dua Schema::create atas
+     * tabel yang sama meledak saat migrate. Bila sudah ada, tujuannya berkas itu.
+     */
+    private function migrationTarget(): string
+    {
+        $existing = glob(database_path('migrations/*_create_document_templates_table.php')) ?: [];
+
+        return $existing[0] ?? database_path('migrations/'.date('Y_m_d_His').'_create_document_templates_table.php');
     }
 }

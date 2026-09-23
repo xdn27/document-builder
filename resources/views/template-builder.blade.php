@@ -146,7 +146,7 @@
                     @foreach ($blockTypes as $type)
                         <button type="button" class="btn btn-sm btn-label-primary"
                             wire:click="addBlock('{{ $type->value }}', '{{ $selectedZone }}')">
-                            <i class="ti ti-plus me-1"></i>{{ $type->label() }}
+                            <i class="ti ti-plus me-1"></i>{{ $type->label($labelTranslator) }}
                         </button>
                     @endforeach
                 </div>
@@ -164,7 +164,7 @@
                     <li wire:key="outline-{{ $block['id'] }}" draggable="true" data-outline-id="{{ $block['id'] }}"
                         wire:click="selectBlock('{{ $block['id'] }}')" role="button"
                         class="list-group-item d-flex justify-content-between align-items-center {{ ($block['id'] ?? null) === $selectedId ? 'active' : '' }}">
-                        <span>{{ $blockType?->label() ?? ($block['type'] ?? '?') }}</span>
+                        <span>{{ $blockType?->label($labelTranslator) ?? ($block['type'] ?? '?') }}</span>
                         <i class="ti ti-grip-vertical"></i>
                     </li>
                 @empty

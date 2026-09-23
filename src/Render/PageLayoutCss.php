@@ -13,6 +13,8 @@ use Maqiis\DocumentBuilder\Support\Mm;
  *
  * Tidak ada aturan yang menyasar selector html: dompdf dan mpdf menerapkan gaya
  * elemen html ke frame halaman, sehingga "html{margin:0}" menghapus margin @page.
+ *
+ * @internal Detail implementasi, bebas berubah di rilis minor — lihat "API publik" di README.
  */
 final class PageLayoutCss
 {

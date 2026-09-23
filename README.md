@@ -32,6 +32,20 @@ memiliki kop dan kakinya sendiri, lalu badan halaman diperiksa apakah meluap. Ma
 header tabel yang diulang, dan kop yang hanya muncul di halaman pertama dihitung oleh mesin tata
 letak browser — mesin yang sama yang nanti mencetak.
 
+## Memasang
+
+| Aplikasi Anda | Mulai dari |
+|---|---|
+| Blade + Livewire | `TUTORIAL.md` §1A, lalu `examples/livewire/` |
+| Inertia + React | `TUTORIAL.md` §1B, lalu `examples/inertia-react/` |
+| PHP tanpa Laravel | bagian "Memakai core tanpa Laravel" di bawah |
+
+```bash
+composer require maqiis/document-builder mpdf/mpdf
+php artisan document-builder:install     # publish config & migration, checklist, lalu doctor
+php artisan document-builder:doctor      # kapan pun: engine PDF, font, gambar, variabel, render
+```
+
 ## Tipe blok
 
 | Tipe | Kegunaan | Dipecah antar halaman |
@@ -105,15 +119,6 @@ $pdf = (new MpdfEngine)->render($document);   // bytes PDF
 `RenderContext::sample()` memakai kebijakan gambar yang longgar dan tanpa pembangkit QR — cukup
 untuk percobaan. Untuk produksi, susun `RenderContext` dengan `ImageSourcePolicy` berdaftar-izin dan
 `QrCodeGenerator` sungguhan.
-
-## Di aplikasi ini
-
-- Service provider didaftarkan manual di `config/app.php`, karena autoload package ditambahkan
-  langsung di `composer.json` root sehingga auto-discovery tidak melihatnya.
-- Semua render lewat `App\Services\DocumentBuilder\DocumentRenderer`; variabel yang tersedia
-  didaftarkan di `App\Services\DocumentBuilder\VariableCatalog`.
-- `DocumentBuilderMenuSeeder` membuat permission dan menu; `DocumentTemplateSampleSeeder` membuat
-  tiga template contoh dari fixture test.
 
 ## Menambahkan engine PDF
 
@@ -196,6 +201,22 @@ HTML yang dilihat browser. `DocumentBuilderServiceProvider` mengikat `Laravel\St
 sebagai implementasinya, yang mendelegasikan ke `ImageUploadStorage` yang sedang aktif — otomatis
 no-op selama strategi masih `data-uri`.
 
+## API publik & versi
+
+Kelas yang boleh Anda pakai dijaga semver; daftar persisnya konstanta `PUBLIC` di
+`tests/PublicApiTest.php`. Kelas lain bertanda `@internal` — bebas berubah di rilis minor, dan IDE
+serta static analyser Anda akan memperingatkan saat memakainya.
+
+| Perubahan | Tingkat rilis |
+|---|---|
+| `Template::CURRENT_VERSION` naik | major — `SchemaMigrator` wajib berisi langkah upgrade-nya |
+| `ContractPayload::VERSION` naik | major |
+| Tipe blok atau properti baru | minor (konsumen wajib toleran pada yang tidak dikenal) |
+| Teks label berubah | patch |
+| Signature API publik berubah | major |
+
+Riwayat perubahan di `CHANGELOG.md`; langkah naik versi di `UPGRADING.md`.
+
 ## Batasan yang diketahui
 
 - **Paragraf tidak dipecah di tengah.** Paragraf yang tidak muat pindah utuh ke halaman berikutnya.
@@ -230,7 +251,7 @@ no-op selama strategi masih `data-uri`.
 node --test "packages/document-builder/tests/js/*.test.mjs"
 
 # layar = cetak, tanpa isi terpotong (butuh Chrome di host)
-bash packages/document-builder/tools/verify-print.sh packages/document-builder/tests/fixtures/surat-tabel-panjang.json 3
+bin/document-builder-verify-print tests/fixtures/surat-tabel-panjang.json 3
 ```
 
 `verify-print.sh` memeriksa tiga hal: jumlah halaman di layar sama dengan jumlah halaman tercetak,

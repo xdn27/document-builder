@@ -19,8 +19,8 @@ final class SchemaValidator
      *
      * Batas ini hanya masuk akal ditegakkan saat MENERIMA tulisan baru — bukan
      * saat membaca yang sudah tersimpan. Lihat $maxBytes di validate(): default
-     * di sini berlaku untuk pemanggil langsung (mis. validasi payload baru dari
-     * endpoint preview konsumen non-Blade); Template::fromArray() — jalur baca
+     * di sini berlaku untuk pemanggil langsung (mis. kode konsumen yang
+     * memvalidasi schema baru langsung lewat validate()); Template::fromArray() — jalur baca
      * yang dipakai mount()/preview()/cetak/PDF — sengaja TIDAK ikut default ini.
      */
     public const MAX_BYTES = 262144;

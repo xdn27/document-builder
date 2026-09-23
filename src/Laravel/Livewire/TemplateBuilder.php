@@ -12,6 +12,7 @@ use Maqiis\DocumentBuilder\Laravel\DocumentRenderer;
 use Maqiis\DocumentBuilder\Laravel\ImageUploadStorage;
 use Maqiis\DocumentBuilder\Schema\BlockPropSchema;
 use Maqiis\DocumentBuilder\Schema\BlockType;
+use Maqiis\DocumentBuilder\Schema\LabelTranslator;
 use Maqiis\DocumentBuilder\Schema\PropCatalog;
 use Maqiis\DocumentBuilder\Schema\SchemaValidationException;
 use Maqiis\DocumentBuilder\Schema\SchemaValidator;
@@ -494,6 +495,7 @@ class TemplateBuilder extends Component
 
         return view('document-builder::template-builder', [
             'catalog' => $catalog,
+            'labelTranslator' => app(LabelTranslator::class),
             'blockTypes' => BlockType::cases(),
             'variables' => app(VariableRegistry::class)->groups(),
             'fonts' => FontRegistry::all(),

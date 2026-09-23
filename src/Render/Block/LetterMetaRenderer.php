@@ -15,6 +15,8 @@ use Maqiis\DocumentBuilder\Support\Mm;
  * di baris pertama, bukan tabel bersarang: rowspan adalah fitur tabel dasar yang
  * didukung penuh mpdf, sedangkan tabel di dalam sel tabel adalah sumber quirk
  * yang lebih besar (lihat catatan blok signature untuk contoh serupa).
+ *
+ * @internal Detail implementasi, bebas berubah di rilis minor — lihat "API publik" di README.
  */
 final class LetterMetaRenderer implements BlockRenderer
 {

@@ -6,6 +6,7 @@ use Maqiis\DocumentBuilder\Render\RenderContext;
 use Maqiis\DocumentBuilder\Schema\Block;
 use Maqiis\DocumentBuilder\Schema\BlockType;
 
+/** @internal Detail implementasi, bebas berubah di rilis minor — lihat "API publik" di README. */
 final class TableRenderer implements BlockRenderer
 {
     public function type(): BlockType
