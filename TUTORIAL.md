@@ -15,15 +15,29 @@ laporkan.
 
 Prasyarat: Laravel 10+, PHP 8.1+, Livewire 2.12 atau 3, Bootstrap 5 di layout Anda.
 
-**1. Pasang paketnya.** Sebelum paket punya repo sendiri, pakai repository `path` ke salinan
-sumbernya:
+**1. Pasang paketnya.** Paket ini privat dan tidak ada di Packagist; daftarkan repo-nya di
+`composer.json` aplikasi Anda:
 
 ```json
-"repositories": [{ "type": "path", "url": "../akademik-maqiis/packages/document-builder" }]
+"repositories": [{ "type": "vcs", "url": "git@github.com:xdn27/document-builder.git" }]
 ```
 
 ```bash
-composer require maqiis/document-builder:@dev mpdf/mpdf
+composer require maqiis/document-builder:^1.0 mpdf/mpdf
+```
+
+Composer butuh akses baca ke repo tersebut: kunci SSH yang terdaftar di GitHub, atau token lewat
+`composer config --global github-oauth.github.com <token>` (di CI, simpan sebagai `auth.json` atau
+variabel `COMPOSER_AUTH`). Bila sumber paket ada di dalam repo aplikasi (monorepo), pakai repository
+`path` — Composer men-symlink folder itu. Versinya dibaca dari branch yang sedang aktif
+(`dev-main`, dialiaskan ke `1.x-dev`), jadi constraint-nya `^1.0@dev`:
+
+```json
+"repositories": [{ "type": "path", "url": "packages/document-builder" }]
+```
+
+```bash
+composer require maqiis/document-builder:^1.0@dev mpdf/mpdf
 ```
 
 Service provider terdaftar otomatis (auto-discovery).

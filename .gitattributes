@@ -1,0 +1,18 @@
+# Tidak ikut arsip dist yang diunduh Composer. tests/fixtures tetap ikut:
+# fixture bawaan bin/document-builder-verify-print dan tools/preview.php.
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/phpunit.xml.dist export-ignore
+/tests/Asset export-ignore
+/tests/Contract export-ignore
+/tests/ExamplesTest.php export-ignore
+/tests/Media export-ignore
+/tests/Pdf export-ignore
+/tests/PublicApiTest.php export-ignore
+/tests/Render export-ignore
+/tests/Sanitize export-ignore
+/tests/Schema export-ignore
+/tests/Support export-ignore
+/tests/Tools export-ignore
+/tests/Variable export-ignore
+/tests/js export-ignore

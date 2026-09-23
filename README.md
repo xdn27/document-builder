@@ -40,8 +40,11 @@ letak browser — mesin yang sama yang nanti mencetak.
 | Inertia + React | `TUTORIAL.md` §1B, lalu `examples/inertia-react/` |
 | PHP tanpa Laravel | bagian "Memakai core tanpa Laravel" di bawah |
 
+Paket ini privat (tidak ada di Packagist) — daftarkan dulu repository `vcs`-nya, lihat
+`TUTORIAL.md` §1A langkah 1.
+
 ```bash
-composer require maqiis/document-builder mpdf/mpdf
+composer require maqiis/document-builder:^1.0 mpdf/mpdf
 php artisan document-builder:install     # publish config & migration, checklist, lalu doctor
 php artisan document-builder:doctor      # kapan pun: engine PDF, font, gambar, variabel, render
 ```

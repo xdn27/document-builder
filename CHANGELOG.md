@@ -3,10 +3,10 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
-## [Unreleased] — 1.0.0
+## [1.0.0] — 2026-09-23
 
-Akan ditag `1.0.0` saat paket diekstrak menjadi repo sendiri (Tahap A). Sampai saat itu paket
-dipasang lewat repository `path`.
+Rilis pertama sebagai paket Composer privat, dipasang lewat repository `vcs` (atau `path` di dalam
+monorepo).
 
 ### Ditambahkan
 - `PropCatalog::describe()` — definisi properti beserta label, grup, dan label nilai enum dalam satu
@@ -26,8 +26,12 @@ dipasang lewat repository `path`.
   `document-builder-config`, `-views`, `-migrations`, dan agregat `document-builder`.
 - `bin/document-builder-verify-print` yang portabel.
 - Contoh berjalan di `examples/livewire` dan `examples/inertia-react`.
+- `phpunit.xml.dist` — test paket berjalan mandiri lewat `vendor/bin/phpunit`.
 
 ### Diperbaiki
+- Dependensi yang dipakai tetapi tidak dideklarasikan kini tercantum: `illuminate/console`,
+  `illuminate/contracts`, `illuminate/http` (require) serta `ext-gd`, `laravel/framework`,
+  `mpdf/mpdf` (require-dev).
 - Template tersimpan di atas batas ukuran kini tetap bisa dibuka, disunting, dicetak, dan diunduh
   PDF-nya; batas hanya berlaku saat menyimpan.
 - State kanvas tidak lagi bocor antar pemanggilan `initBuilder()` pada halaman yang sama.

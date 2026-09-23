@@ -2,9 +2,8 @@
 
 ## Dari pemakaian di dalam repo (pra-1.0) ke 1.0
 
-Langkah 2–7 sudah ditempuh akademik-maqiis (Gate 3); langkah 1 menyusul saat paket diekstrak
-menjadi repo sendiri (Tahap A) — sampai itu repo tersebut masih memetakan PSR-4 dan mendaftarkan
-provider secara manual. Ulangi semuanya di aplikasi lain yang masih memakai salinan lama.
+Ketujuh langkah sudah ditempuh akademik-maqiis. Ulangi semuanya di aplikasi lain yang masih memakai
+salinan lama.
 
 1. **Pasang lewat Composer** (repository `path` atau VCS), hapus pemetaan PSR-4 manual dan
    pendaftaran provider manual di `config/app.php` — auto-discovery mengambil alih.

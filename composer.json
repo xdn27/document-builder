@@ -42,6 +42,9 @@
             "providers": [
                 "Maqiis\\DocumentBuilder\\Laravel\\DocumentBuilderServiceProvider"
             ]
+        },
+        "branch-alias": {
+            "dev-main": "1.x-dev"
         }
     },
     "minimum-stability": "stable"

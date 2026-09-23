@@ -41,7 +41,7 @@ return [
 
         /*
         | Strategi ImageUploadStorage untuk berkas yang diunggah dari panel
-        | builder (App\Services\DocumentBuilder). "data-uri" (bawaan) menempel
+        | builder. "data-uri" (bawaan) menempel
         | berkas langsung ke schema sebagai base64 — tidak butuh disk, tapi
         | boros ruang schema untuk gambar besar atau yang dipakai berulang.
         | "filesystem" menyimpannya ke disk Laravel (upload_disk) dan hanya
