@@ -182,6 +182,18 @@ final class SchemaValidator
 
     private function props(string $path, BlockType $type, array $raw): array
     {
+        if ($type === BlockType::Table) {
+            if (isset($raw['hideHeader']) && ! isset($raw['showHeader'])) {
+                $raw['showHeader'] = ! (bool) $raw['hideHeader'];
+            }
+            if (isset($raw['spaceBeforeMm']) && ! isset($raw['marginTopMm'])) {
+                $raw['marginTopMm'] = $raw['spaceBeforeMm'];
+            }
+            if (isset($raw['spaceAfterMm']) && ! isset($raw['marginBottomMm'])) {
+                $raw['marginBottomMm'] = $raw['spaceAfterMm'];
+            }
+        }
+
         $definitions = BlockPropSchema::for($type);
         $props = [];
 

@@ -268,4 +268,62 @@ class MpdfEngineTest extends TestCase
         $diffMm = ($y0 - $y15) * 25.4 / 72;
         $this->assertEqualsWithDelta(15.0, $diffMm, 0.1);
     }
+
+    public function test_table_outer_margins_honored_in_mpdf(): void
+    {
+        $createDoc = static function (float $marginTop, float $marginLeft): RenderedDocument {
+            $template = SchemaValidator::validate([
+                'version' => 1,
+                'page' => ['size' => 'A4', 'orientation' => 'portrait', 'margin' => ['top' => 20, 'right' => 20, 'bottom' => 20, 'left' => 20]],
+                'style' => ['fontFamily' => 'tinos', 'fontSize' => 12, 'lineHeight' => 1.5],
+                'zones' => [
+                    'body' => ['blocks' => [
+                        [
+                            'id' => 'tbl',
+                            'type' => 'table',
+                            'props' => [
+                                'columns' => [['label' => 'Header', 'widthPercent' => 100, 'align' => 'left']],
+                                'rows' => [['Teks Tabel']],
+                                'marginTopMm' => $marginTop,
+                                'marginLeftMm' => $marginLeft,
+                            ],
+                        ],
+                    ]],
+                    'footer' => ['blocks' => []],
+                ],
+            ]);
+
+            return (new HtmlRenderer)->render($template, RenderContext::sample());
+        };
+
+        $getCoords = static function (string $pdf): array {
+            preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $pdf, $streams);
+            foreach ($streams[1] as $raw) {
+                $decomp = @gzuncompress($raw);
+                if ($decomp !== false && preg_match('/([0-9.]+)\s+([0-9.]+)\s+Td\s*\(\x00T\x00e\x00k\x00s/s', $decomp, $m)) {
+                    return [(float) $m[1], (float) $m[2]];
+                }
+            }
+
+            return [0.0, 0.0];
+        };
+
+        $engine = new MpdfEngine;
+        $pdf0 = $engine->render($createDoc(0.0, 0.0));
+        $pdfMargin = $engine->render($createDoc(15.0, 10.0));
+
+        [$x0, $y0] = $getCoords($pdf0);
+        [$x1, $y1] = $getCoords($pdfMargin);
+
+        $this->assertGreaterThan(0.0, $x0);
+        $this->assertGreaterThan(0.0, $y0);
+
+        // Pergeseran vertikal sebesar 15mm
+        $diffYMm = ($y0 - $y1) * 25.4 / 72;
+        $this->assertEqualsWithDelta(15.0, $diffYMm, 0.1);
+
+        // Pergeseran horizontal sebesar 10mm
+        $diffXMm = ($x1 - $x0) * 25.4 / 72;
+        $this->assertEqualsWithDelta(10.0, $diffXMm, 0.1);
+    }
 }

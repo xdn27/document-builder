@@ -187,6 +187,10 @@ body {
     padding-left: 4mm;
 }
 
+.db-table__wrap {
+    display: block;
+}
+
 .db-table__table {
     width: 100%;
     border-collapse: collapse;

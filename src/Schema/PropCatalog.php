@@ -29,6 +29,7 @@ final class PropCatalog
         'thicknessMm' => 'Tebal (mm)', 'widthPercent' => 'Lebar (%)',
         'marginTopMm' => 'Margin atas (mm)', 'marginRightMm' => 'Margin kanan (mm)',
         'marginBottomMm' => 'Margin bawah (mm)', 'marginLeftMm' => 'Margin kiri (mm)',
+        'showHeader' => 'Tampilkan header',
     ];
 
     /**
@@ -47,7 +48,7 @@ final class PropCatalog
         'heightMm' => 'Ukuran & Jarak', 'thicknessMm' => 'Ukuran & Jarak', 'widthPercent' => 'Ukuran & Jarak',
         'marginTopMm' => 'Ukuran & Jarak', 'marginRightMm' => 'Ukuran & Jarak',
         'marginBottomMm' => 'Ukuran & Jarak', 'marginLeftMm' => 'Ukuran & Jarak',
-        'showLogo' => 'Tampilan', 'rule' => 'Tampilan', 'repeatHeader' => 'Tampilan', 'headerBold' => 'Tampilan',
+        'showLogo' => 'Tampilan', 'showHeader' => 'Tampilan', 'rule' => 'Tampilan', 'repeatHeader' => 'Tampilan', 'headerBold' => 'Tampilan',
         'border' => 'Tampilan', 'style' => 'Tampilan',
     ];
 

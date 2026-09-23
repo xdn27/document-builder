@@ -82,10 +82,18 @@ export function describeFragments(blockEl) {
 export function openGroupContainer(descriptor, isFirstContainerOfGroup) {
     const container = descriptor.template.cloneNode(true);
 
-    if (descriptor.groupKind === 'table' && !containerNeedsHeader(descriptor, isFirstContainerOfGroup)) {
-        const head = container.querySelector('.db-table__head');
+    if (descriptor.groupKind === 'table') {
+        if (!containerNeedsHeader(descriptor, isFirstContainerOfGroup)) {
+            const head = container.querySelector('.db-table__head');
 
-        if (head) head.remove();
+            if (head) head.remove();
+        }
+
+        if (!isFirstContainerOfGroup) {
+            const wrap = container.querySelector('.db-table__wrap');
+
+            if (wrap) wrap.style.marginTop = '0';
+        }
     }
 
     return container;

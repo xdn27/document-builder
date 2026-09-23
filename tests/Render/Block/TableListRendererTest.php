@@ -3,6 +3,7 @@
 namespace Maqiis\DocumentBuilder\Tests\Render\Block;
 
 use Maqiis\DocumentBuilder\Schema\BlockType;
+use Maqiis\DocumentBuilder\Schema\SchemaValidator;
 use PHPUnit\Framework\TestCase;
 
 class TableListRendererTest extends TestCase
@@ -83,6 +84,59 @@ class TableListRendererTest extends TestCase
         $html = $this->table(['rows' => [['<script>alert(1)</script>', 'a', 'b']]]);
 
         $this->assertStringNotContainsString('<script>', $html);
+    }
+
+    public function test_table_can_hide_header(): void
+    {
+        $html = $this->table(['showHeader' => false]);
+
+        $this->assertStringNotContainsString('<thead', $html);
+        $this->assertStringNotContainsString('Nama', $html);
+        $this->assertStringContainsString('<tbody class="db-table__body">', $html);
+        $this->assertStringContainsString('Fatimah', $html);
+        // Sel data tetap membawa lebar kolom saat thead disembunyikan
+        $this->assertStringContainsString('width:60%', $html);
+    }
+
+    public function test_table_renders_outer_margins(): void
+    {
+        $html = $this->table([
+            'marginTopMm' => 12.0,
+            'marginRightMm' => 8.0,
+            'marginBottomMm' => 15.0,
+            'marginLeftMm' => 6.0,
+        ]);
+
+        $this->assertStringContainsString('class="db-table__wrap" style="margin-top:12mm;margin-right:8mm;margin-bottom:15mm;margin-left:6mm"', $html);
+    }
+
+    public function test_table_hide_header_and_space_before_after_aliases(): void
+    {
+        $template = SchemaValidator::validate([
+            'version' => 1,
+            'page' => ['size' => 'A4', 'orientation' => 'portrait', 'margin' => ['top' => 20, 'right' => 20, 'bottom' => 20, 'left' => 20]],
+            'style' => [],
+            'zones' => [
+                'body' => ['blocks' => [
+                    [
+                        'id' => 'tbl',
+                        'type' => 'table',
+                        'props' => [
+                            'columns' => [['label' => 'Col', 'widthPercent' => 100, 'align' => 'left']],
+                            'rows' => [['Val']],
+                            'hideHeader' => true,
+                            'spaceBeforeMm' => 10.0,
+                            'spaceAfterMm' => 20.0,
+                        ],
+                    ],
+                ]],
+            ],
+        ]);
+
+        $block = $template->body->blocks[0];
+        $this->assertFalse($block->prop('showHeader'));
+        $this->assertSame(10.0, $block->prop('marginTopMm'));
+        $this->assertSame(20.0, $block->prop('marginBottomMm'));
     }
 
     public function test_numbered_list_uses_indonesian_multi_level_markers(): void
