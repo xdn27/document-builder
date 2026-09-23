@@ -65,6 +65,26 @@ class TextBlockRendererTest extends TestCase
         $this->assertStringNotContainsString('px', $html);
     }
 
+    public function test_paragraph_omits_font_size_when_set_to_zero(): void
+    {
+        $html = $this->renderBlock(BlockType::Paragraph, [
+            'text' => 'Teks standar',
+            'fontSizePt' => 0.0,
+        ]);
+
+        $this->assertStringNotContainsString('font-size', $html);
+    }
+
+    public function test_paragraph_emits_font_size_when_specified(): void
+    {
+        $html = $this->renderBlock(BlockType::Paragraph, [
+            'text' => 'Teks besar',
+            'fontSizePt' => 14.5,
+        ]);
+
+        $this->assertStringContainsString('font-size:14.5pt', $html);
+    }
+
     public function test_paragraph_direction_defaults_to_ltr(): void
     {
         $html = $this->renderBlock(BlockType::Paragraph, ['text' => 'Dengan hormat.']);

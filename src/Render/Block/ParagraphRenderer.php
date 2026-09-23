@@ -17,12 +17,18 @@ final class ParagraphRenderer implements BlockRenderer
 
     public function render(Block $block, RenderContext $context): string
     {
+        $fontSize = (float) $block->prop('fontSizePt');
+        $fontSizeStyle = $fontSize > 0.0
+            ? sprintf(';font-size:%spt', $this->number($fontSize))
+            : '';
+
         $style = sprintf(
-            'text-align:%s;text-indent:%s;margin-top:%s;margin-bottom:%s',
+            'text-align:%s;text-indent:%s;margin-top:%s;margin-bottom:%s%s',
             $context->escape((string) $block->prop('align')),
             Mm::css((float) $block->prop('indentMm')),
             Mm::css((float) $block->prop('spaceBeforeMm')),
             Mm::css((float) $block->prop('spaceAfterMm')),
+            $fontSizeStyle,
         );
 
         // Atribut dir, bukan cuma CSS direction: dir mengikutkan karakter netral
@@ -35,5 +41,10 @@ final class ParagraphRenderer implements BlockRenderer
             $context->editAttr('text', (string) $block->prop('text'), rich: true),
             $context->rich((string) $block->prop('text')),
         );
+    }
+
+    private function number(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
     }
 }

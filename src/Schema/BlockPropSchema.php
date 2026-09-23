@@ -49,6 +49,7 @@ final class BlockPropSchema
                 'text' => ['type' => 'string', 'default' => ''],
                 'align' => ['type' => 'enum', 'default' => 'justify', 'values' => self::TEXT_ALIGNMENTS],
                 'direction' => ['type' => 'enum', 'default' => 'ltr', 'values' => self::DIRECTIONS],
+                'fontSizePt' => ['type' => 'float', 'default' => 0.0, 'min' => 0.0, 'max' => 72.0],
                 'indentMm' => ['type' => 'float', 'default' => 0.0, 'min' => 0.0, 'max' => 50.0],
                 'spaceBeforeMm' => ['type' => 'float', 'default' => 0.0, 'min' => 0.0, 'max' => 50.0],
                 'spaceAfterMm' => ['type' => 'float', 'default' => 3.0, 'min' => 0.0, 'max' => 50.0],
