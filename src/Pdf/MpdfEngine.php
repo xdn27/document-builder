@@ -84,15 +84,24 @@ final class MpdfEngine implements PdfEngine
     }
 
     /**
-     * Dengan margin_header 0, kotak kop mpdf sudah mulai dari tepi kertas — margin
-     * atas negatif yang benar untuk browser (lihat LetterheadImageRenderer) di sini
-     * justru akan mendorong gambarnya ke luar halaman. Dinetralkan khusus untuk PDF;
+     * Dengan margin_header 0, kotak kop mpdf sudah mulai dari tepi kertas.
+     * mpdf mengabaikan margin-top pada elemen pertama di SetHTMLHeader, tetapi
+     * menghormati padding-top. Dinetralkan khusus untuk PDF: margin-top dijadikan 0
+     * dan jarak atas diterapkan lewat padding-top sesuai data-margin-top;
      * browser tetap menerima HTML aslinya lewat headerHtml()/flowHtml().
      */
     private function neutralizeTopBleed(?string $html): ?string
     {
         if ($html === null) {
             return null;
+        }
+
+        if (str_contains($html, 'data-margin-top="')) {
+            return preg_replace_callback(
+                '/(class="db-letterhead-image__bleed"[^>]*style=")(?:margin-top:[^;"]*;?)([^"]*"\s+data-margin-top="([0-9.]+mm)")/',
+                static fn (array $m): string => $m[1].'margin-top:0;padding-top:'.$m[3].';'.$m[2],
+                $html,
+            );
         }
 
         return preg_replace(

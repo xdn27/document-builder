@@ -33,6 +33,10 @@ final class BlockPropSchema
             BlockType::LetterheadImage => [
                 'src' => ['type' => 'image', 'default' => ''],
                 'alt' => ['type' => 'string', 'default' => ''],
+                'marginTopMm' => ['type' => 'float', 'default' => 0.0, 'min' => 0.0, 'max' => 50.0],
+                'marginRightMm' => ['type' => 'float', 'default' => 0.0, 'min' => 0.0, 'max' => 50.0],
+                'marginBottomMm' => ['type' => 'float', 'default' => 0.0, 'min' => 0.0, 'max' => 50.0],
+                'marginLeftMm' => ['type' => 'float', 'default' => 0.0, 'min' => 0.0, 'max' => 50.0],
             ],
             BlockType::LetterMeta => [
                 'rows' => ['type' => 'rows', 'default' => [], 'keys' => ['label' => '', 'value' => '']],

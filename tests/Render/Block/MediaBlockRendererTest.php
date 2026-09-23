@@ -261,6 +261,31 @@ class MediaBlockRendererTest extends TestCase
         $this->assertStringContainsString('data-break-inside="avoid"', $html);
     }
 
+    public function test_letterhead_image_applies_custom_margins_with_adjusted_dimensions(): void
+    {
+        // 400x80 -> rasio 5:1. Halaman contoh A4 (210mm) bermargin 20mm semua sisi.
+        // Margin kop: atas 5mm, kanan 10mm, bawah 8mm, kiri 15mm.
+        // Lebar efektif = 210 - 10 - 15 = 185mm.
+        // Tinggi = 185 / 5 = 37mm.
+        // Margin CSS:
+        // top: 5 - 20 = -15mm
+        // right: 10 - 20 = -10mm
+        // left: 15 - 20 = -5mm
+        // bottom: 8mm
+        $html = $this->renderBlock(BlockType::LetterheadImage, [
+            'src' => $this->pngDataUri(400, 80),
+            'alt' => 'Kop bermargin',
+            'marginTopMm' => 5.0,
+            'marginRightMm' => 10.0,
+            'marginBottomMm' => 8.0,
+            'marginLeftMm' => 15.0,
+        ]);
+
+        $this->assertStringContainsString('margin-top:-15mm;margin-right:-10mm;margin-left:-5mm;margin-bottom:8mm', $html);
+        $this->assertStringContainsString('data-margin-top="5mm"', $html);
+        $this->assertStringContainsString('style="height:37mm"', $html);
+    }
+
     private function pngDataUri(int $width, int $height): string
     {
         $image = imagecreatetruecolor($width, $height);

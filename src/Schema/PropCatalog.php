@@ -27,6 +27,8 @@ final class PropCatalog
         'items' => 'Butir', 'style' => 'Gaya', 'src' => 'Sumber gambar', 'alt' => 'Teks alternatif',
         'widthMm' => 'Lebar (mm)', 'payload' => 'Isi QR', 'sizeMm' => 'Ukuran (mm)', 'heightMm' => 'Tinggi (mm)',
         'thicknessMm' => 'Tebal (mm)', 'widthPercent' => 'Lebar (%)',
+        'marginTopMm' => 'Margin atas (mm)', 'marginRightMm' => 'Margin kanan (mm)',
+        'marginBottomMm' => 'Margin bawah (mm)', 'marginLeftMm' => 'Margin kiri (mm)',
     ];
 
     /**
@@ -43,6 +45,8 @@ final class PropCatalog
         'spaceBeforeMm' => 'Ukuran & Jarak', 'spaceAfterMm' => 'Ukuran & Jarak', 'spaceMm' => 'Ukuran & Jarak',
         'fontSizePt' => 'Ukuran & Jarak', 'widthMm' => 'Ukuran & Jarak', 'sizeMm' => 'Ukuran & Jarak',
         'heightMm' => 'Ukuran & Jarak', 'thicknessMm' => 'Ukuran & Jarak', 'widthPercent' => 'Ukuran & Jarak',
+        'marginTopMm' => 'Ukuran & Jarak', 'marginRightMm' => 'Ukuran & Jarak',
+        'marginBottomMm' => 'Ukuran & Jarak', 'marginLeftMm' => 'Ukuran & Jarak',
         'showLogo' => 'Tampilan', 'rule' => 'Tampilan', 'repeatHeader' => 'Tampilan', 'headerBold' => 'Tampilan',
         'border' => 'Tampilan', 'style' => 'Tampilan',
     ];

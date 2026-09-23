@@ -138,6 +138,38 @@ class HtmlRendererTest extends TestCase
         $this->assertEqualsWithDelta(22.0, $document->headerHeight(), 0.001);
     }
 
+    public function test_header_height_hint_accounts_for_letterhead_image_custom_margins(): void
+    {
+        // 400x80 -> rasio 5:1. Halaman A4 (210mm), margin atas 20mm.
+        // Margin kop: marginTopMm = 5, marginRightMm = 10, marginLeftMm = 10, marginBottomMm = 8.
+        // Lebar efektif = 210 - 10 - 10 = 190mm.
+        // Tinggi = 190 / 5 = 38mm.
+        // Hint = height + marginTopMm + marginBottomMm - pageMarginTop
+        // = 38 + 5 + 8 - 20 = 31mm.
+        $template = SchemaValidator::validate([
+            'version' => 1,
+            'page' => ['size' => 'A4', 'orientation' => 'portrait'],
+            'style' => [],
+            'zones' => [
+                'header' => ['height' => 'auto', 'blocks' => [
+                    ['id' => 'kop', 'type' => 'letterhead-image', 'props' => [
+                        'src' => $this->pngDataUri(400, 80),
+                        'marginTopMm' => 5,
+                        'marginRightMm' => 10,
+                        'marginLeftMm' => 10,
+                        'marginBottomMm' => 8,
+                    ]],
+                ]],
+                'body' => ['blocks' => [['id' => 'p1', 'type' => 'paragraph', 'props' => ['text' => 'Isi']]]],
+                'footer' => ['blocks' => []],
+            ],
+        ]);
+
+        $document = (new HtmlRenderer)->render($template, RenderContext::sample());
+
+        $this->assertEqualsWithDelta(31.0, $document->headerHeight(), 0.001);
+    }
+
     public function test_header_height_stays_auto_when_the_letterhead_image_cannot_be_read(): void
     {
         $template = SchemaValidator::validate([

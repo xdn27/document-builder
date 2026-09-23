@@ -65,10 +65,16 @@ final class HtmlRenderer
                 continue;
             }
 
-            $height = LetterheadImageRenderer::bleedHeightMm($context->page->widthMm(), $src, $context->imageResolver);
+            $marginLeftMm = (float) $block->prop('marginLeftMm');
+            $marginRightMm = (float) $block->prop('marginRightMm');
+            $marginTopMm = (float) $block->prop('marginTopMm');
+            $marginBottomMm = (float) $block->prop('marginBottomMm');
+
+            $effectiveWidth = max(0.0, $context->page->widthMm() - $marginLeftMm - $marginRightMm);
+            $height = LetterheadImageRenderer::bleedHeightMm($effectiveWidth, $src, $context->imageResolver);
 
             if ($height !== null) {
-                return max(0.0, $height - $context->page->margin->top);
+                return max(0.0, $height + $marginTopMm + $marginBottomMm - $context->page->margin->top);
             }
         }
 

@@ -164,4 +164,63 @@ class MpdfEngineTest extends TestCase
 
         return $method->invoke($engine, $html);
     }
+
+    public function test_neutralize_top_bleed_honors_custom_data_margin_top(): void
+    {
+        $engine = new MpdfEngine;
+        $method = new ReflectionMethod(MpdfEngine::class, 'neutralizeTopBleed');
+        $method->setAccessible(true);
+
+        $htmlWithCustomMargin = '<div class="db-letterhead-image__bleed" style="margin-top:-15mm;margin-right:-10mm;margin-left:-10mm" data-margin-top="5mm"><img src="x" /></div>';
+        $neutralized = $method->invoke($engine, $htmlWithCustomMargin);
+
+        $this->assertStringContainsString('style="margin-top:0;padding-top:5mm;margin-right:-10mm;margin-left:-10mm"', $neutralized);
+
+        $htmlDefault = '<div class="db-letterhead-image__bleed" style="margin-top:-20mm;margin-right:-20mm;margin-left:-25mm" data-margin-top="0mm"><img src="x" /></div>';
+        $neutralizedDefault = $method->invoke($engine, $htmlDefault);
+
+        $this->assertStringContainsString('style="margin-top:0;padding-top:0mm;margin-right:-20mm;margin-left:-25mm"', $neutralizedDefault);
+    }
+
+    public function test_render_positions_letterhead_image_at_margin_top_offset(): void
+    {
+        $template = SchemaValidator::validate([
+            'version' => 1,
+            'page' => ['size' => 'A4', 'orientation' => 'portrait', 'margin' => ['top' => 20, 'right' => 20, 'bottom' => 20, 'left' => 20]],
+            'style' => [],
+            'zones' => [
+                'header' => ['repeat' => 'all', 'height' => 'auto', 'blocks' => [
+                    ['id' => 'kop', 'type' => 'letterhead-image', 'props' => [
+                        'src' => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+                        'marginTopMm' => 15.0,
+                        'marginRightMm' => 10.0,
+                        'marginBottomMm' => 5.0,
+                        'marginLeftMm' => 10.0,
+                    ]],
+                ]],
+                'body' => ['blocks' => [['id' => 'p1', 'type' => 'paragraph', 'props' => ['text' => 'Isi']]]],
+                'footer' => ['blocks' => []],
+            ],
+        ]);
+
+        $document = (new HtmlRenderer)->render($template, RenderContext::sample());
+        $pdf = (new MpdfEngine)->render($document);
+
+        preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $pdf, $streams);
+        $found = false;
+        foreach ($streams[1] as $raw) {
+            $decomp = @gzuncompress($raw);
+            if ($decomp !== false && str_contains($decomp, 'Do')) {
+                if (preg_match('/([0-9.-]+)\s+([0-9.-]+)\s+([0-9.-]+)\s+([0-9.-]+)\s+([0-9.-]+)\s+([0-9.-]+)\s+cm/', $decomp, $m)) {
+                    $yPt = (float) $m[6];
+                    $hPt = (float) $m[4];
+                    $topMm = (841.89 - ($yPt + $hPt)) / 72 * 25.4;
+                    $this->assertEqualsWithDelta(15.0, $topMm, 0.1);
+                    $found = true;
+                }
+            }
+        }
+
+        $this->assertTrue($found, 'Perintah gambar tidak ditemukan di stream PDF.');
+    }
 }
