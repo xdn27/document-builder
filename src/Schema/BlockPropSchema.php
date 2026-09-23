@@ -45,6 +45,18 @@ final class BlockPropSchema
                 'rightText' => ['type' => 'string', 'default' => ''],
                 'rightAlign' => ['type' => 'enum', 'default' => 'right', 'values' => self::ALIGNMENTS],
             ],
+            // Satu entri per butir koleksi 'recipients'; {{ recipient.* }} di
+            // itemText diikat ke butir yang sedang dirender. Lihat RecipientRenderer.
+            BlockType::Recipient => [
+                'heading' => ['type' => 'string', 'default' => 'Kepada Yth.'],
+                'itemText' => ['type' => 'string', 'default' => '{{ recipient.name }}'],
+                'closing' => ['type' => 'string', 'default' => ''],
+                'numbering' => ['type' => 'enum', 'default' => 'auto', 'values' => ['auto', 'always', 'never']],
+                'align' => ['type' => 'enum', 'default' => 'left', 'values' => self::ALIGNMENTS],
+                'itemSpaceMm' => ['type' => 'float', 'default' => 2.0, 'min' => 0.0, 'max' => 20.0],
+                'spaceBeforeMm' => ['type' => 'float', 'default' => 0.0, 'min' => 0.0, 'max' => 50.0],
+                'spaceAfterMm' => ['type' => 'float', 'default' => 4.0, 'min' => 0.0, 'max' => 50.0],
+            ],
             BlockType::Paragraph => [
                 'text' => ['type' => 'string', 'default' => ''],
                 'align' => ['type' => 'enum', 'default' => 'justify', 'values' => self::TEXT_ALIGNMENTS],

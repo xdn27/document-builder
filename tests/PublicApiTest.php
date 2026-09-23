@@ -60,6 +60,7 @@ class PublicApiTest extends TestCase
         'Maqiis\DocumentBuilder\Schema\ZoneRepeat',
         'Maqiis\DocumentBuilder\Testing\TemplateRecordContractTests',
         'Maqiis\DocumentBuilder\Variable\ArrayVariableResolver',
+        'Maqiis\DocumentBuilder\Variable\CollectionVariableResolver',
         'Maqiis\DocumentBuilder\Variable\VariableRegistry',
         'Maqiis\DocumentBuilder\Variable\VariableResolver',
         'Maqiis\DocumentBuilder\Variable\VariableSyntax',

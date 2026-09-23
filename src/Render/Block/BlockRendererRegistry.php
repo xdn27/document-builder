@@ -19,6 +19,7 @@ final class BlockRendererRegistry
         BlockType::Spacer,
         BlockType::Divider,
         BlockType::LetterMeta,
+        BlockType::Recipient,
     ];
 
     /** @var array<string,BlockRenderer> */
@@ -30,6 +31,7 @@ final class BlockRendererRegistry
             ->register(new LetterheadRenderer)
             ->register(new LetterheadImageRenderer)
             ->register(new LetterMetaRenderer)
+            ->register(new RecipientRenderer)
             ->register(new ParagraphRenderer)
             ->register(new SpacerRenderer)
             ->register(new DividerRenderer)

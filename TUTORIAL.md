@@ -218,6 +218,7 @@ inspektor kanan. Urutan blok dalam satu zona bisa diseret-ubah (drag-and-drop) d
 | QR Code (`qrcode`) | Kode QR dari teks atau variabel | Tidak |
 | Spasi (`spacer`) | Jarak vertikal kosong | Tidak |
 | Garis (`divider`) | Garis pemisah horizontal | Tidak |
+| Penerima (`recipient`) | "Kepada Yth.", satu entri per penerima (bernomor bila lebih dari satu), lalu penutup | Tidak |
 
 Kop dan kaki bisa diatur tampil di **semua halaman**, **hanya halaman pertama**, atau **selain
 halaman pertama** — pengaturan ini ada di properti zona, bukan per blok.

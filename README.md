@@ -64,9 +64,29 @@ php artisan document-builder:doctor      # kapan pun: engine PDF, font, gambar, 
 | `qrcode` | QR dari teks atau variabel | tidak |
 | `spacer` | jarak vertikal | tidak |
 | `divider` | garis pemisah | tidak |
+| `recipient` | daftar penerima: pembuka, satu entri per butir koleksi `recipients`, penutup | tidak |
 
 Kop dan kaki dapat tampil di `all`, `first-only`, atau `except-first`. Teks boleh memuat variabel
 seperti `{{ student.name }}`; `{{ page }}` dan `{{ pages }}` diisi saat paginasi.
+
+### Blok penerima & koleksi
+
+Blok `recipient` merender satu entri per butir koleksi `recipients`. Di dalam `itemText`,
+`{{ recipient.* }}` dibaca dari butir yang sedang dirender; path lain tetap dari dokumen. Data
+koleksi berupa list di resolver:
+
+```php
+new ArrayVariableResolver([
+    'recipient' => ['name' => 'Bapak Ahmad'],            // penerima pertama, untuk blok lain
+    'recipients' => [['name' => 'Bapak Ahmad'], ['name' => 'Ibu Siti']],
+]);
+```
+
+Untuk kanvas builder, daftarkan contoh butir lewat `VariableRegistry::defineCollection('recipients', [...])`
+agar perulangannya terlihat. Aturan render: resolver yang tidak mengimplementasikan
+`CollectionVariableResolver` → blok dirender sekali (penerima tunggal); koleksi kosong → blok tidak
+dirender; baris yang kosong setelah variabel diisi dibuang; penomoran `auto` hanya muncul bila
+penerimanya lebih dari satu.
 
 ## Font (`FontRegistry`)
 

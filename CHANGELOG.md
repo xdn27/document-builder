@@ -3,6 +3,27 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [Unreleased]
+
+### Ditambahkan
+- Tipe blok `recipient` (Penerima): pembuka (`heading`), satu entri per butir koleksi `recipients`
+  dengan format `itemText` tempat `{{ recipient.* }}` diikat ke butir yang sedang dirender, lalu
+  penutup (`closing`). Penomoran `auto`/`always`/`never`, baris kosong dibuang, koleksi kosong tidak
+  dirender, dan resolver tanpa koleksi jatuh ke perilaku satu penerima. Ditambahkan di akhir
+  `BlockType` supaya urutan palet konsumen tidak bergeser.
+- Interface publik `Variable\CollectionVariableResolver` (`collection(string $name): ?array`),
+  diimplementasikan `ArrayVariableResolver` (list berisi array dibaca sebagai koleksi) dan resolver
+  contoh `VariableRegistry`. `VariableRegistry::defineCollection()` / `hasCollection()` untuk contoh
+  butir di kanvas builder; `VariableSyntax::resolver()` untuk membaca resolver dokumen.
+- Inspektor Blade memakai Mini-RTE juga untuk `itemText`.
+
+### Diperbaiki
+- Gambar tanda tangan dan blok gambar kini mengikuti `textAlign`/`align` di kanvas builder yang
+  tertanam di halaman aplikasi. Reset CSS host (mis. preflight Tailwind `img { display: block }`)
+  membuat `text-align` sel diabaikan sehingga gambar menempel ke tepi kiri; `document.css` kini
+  menegaskan `display: inline` untuk `.db-signature__image` dan `.db-image__img`. Hasil cetak dan PDF
+  tidak berubah karena nilainya sama dengan bawaan peramban.
+
 ## [1.0.0] — 2026-09-23
 
 Rilis pertama sebagai paket Composer privat, dipasang lewat repository `vcs` (atau `path` di dalam

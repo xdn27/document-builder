@@ -24,9 +24,9 @@ class BlockTest extends TestCase
         $this->assertSame('qrcode', BlockType::QrCode->value);
     }
 
-    public function test_there_are_exactly_eleven_block_types(): void
+    public function test_there_are_exactly_twelve_block_types(): void
     {
-        $this->assertCount(11, BlockType::cases());
+        $this->assertCount(12, BlockType::cases());
     }
 
     public function test_document_style_clamps_font_size(): void

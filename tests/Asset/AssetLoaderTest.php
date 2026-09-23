@@ -27,6 +27,25 @@ class AssetLoaderTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('/(^|[};,\s])html\s*[{,]/', AssetLoader::css());
     }
 
+    /**
+     * Gambar tanda tangan dan blok gambar diposisikan lewat text-align wadahnya.
+     * Kanvas builder hidup di halaman aplikasi, dan reset CSS seperti preflight
+     * Tailwind (img { display: block }) membuat text-align diabaikan — gambar
+     * menempel ke tepi kiri sel. Stylesheet harus menegaskan display inline.
+     */
+    public function test_text_aligned_images_stay_inline_against_host_css_resets(): void
+    {
+        $css = AssetLoader::css();
+
+        foreach (['db-signature__image', 'db-image__img'] as $class) {
+            $this->assertMatchesRegularExpression(
+                '/\.'.$class.'\b[^{]*\{[^}]*display:\s*inline\s*;/',
+                $css,
+                "Kelas {$class} harus menegaskan display:inline agar text-align wadahnya berlaku.",
+            );
+        }
+    }
+
     public function test_stylesheet_styles_every_block_class(): void
     {
         $css = AssetLoader::css();

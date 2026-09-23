@@ -15,6 +15,8 @@ enum BlockType: string
     case QrCode = 'qrcode';
     case Spacer = 'spacer';
     case Divider = 'divider';
+    // Ditambahkan di 1.1 — sengaja di akhir: urutan case = urutan palet konsumen.
+    case Recipient = 'recipient';
 
     public function label(?LabelTranslator $translator = null): string
     {
@@ -30,6 +32,7 @@ enum BlockType: string
             self::QrCode => 'QR Code',
             self::Spacer => 'Jarak',
             self::Divider => 'Garis',
+            self::Recipient => 'Penerima',
         };
 
         return $translator?->translate("block.{$this->value}", $fallback) ?? $fallback;

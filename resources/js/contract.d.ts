@@ -16,7 +16,8 @@ export type BlockTypeValue =
     | 'image'
     | 'qrcode'
     | 'spacer'
-    | 'divider';
+    | 'divider'
+    | 'recipient';
 
 export type PropType = 'string' | 'float' | 'bool' | 'enum' | 'image' | 'rows' | 'matrix';
 

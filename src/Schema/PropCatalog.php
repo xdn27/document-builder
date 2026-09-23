@@ -33,6 +33,9 @@ final class PropCatalog
         'imageScalePercent' => 'Skala gambar tanda tangan (%)',
         'imageOffsetYMm' => 'Geser vertikal gambar (mm)',
         'imageOffsetXMm' => 'Geser horizontal gambar (mm)',
+        'heading' => 'Pembuka (mis. Kepada Yth.)', 'itemText' => 'Format tiap penerima',
+        'closing' => 'Penutup (mis. di Tempat)', 'numbering' => 'Penomoran',
+        'itemSpaceMm' => 'Jarak antar penerima (mm)',
     ];
 
     /**
@@ -44,6 +47,8 @@ final class PropCatalog
         'logo' => 'Konten', 'line1' => 'Konten', 'line2' => 'Konten', 'line3' => 'Konten', 'line4' => 'Konten',
         'rows' => 'Konten', 'separator' => 'Konten', 'rightText' => 'Konten', 'text' => 'Konten', 'columns' => 'Konten',
         'items' => 'Konten', 'src' => 'Konten', 'alt' => 'Konten', 'payload' => 'Konten',
+        'heading' => 'Konten', 'itemText' => 'Konten', 'closing' => 'Konten',
+        'itemSpaceMm' => 'Ukuran & Jarak', 'numbering' => 'Tampilan',
         'align' => 'Tata Letak', 'rightAlign' => 'Tata Letak', 'direction' => 'Tata Letak', 'textAlign' => 'Tata Letak',
         'logoHeightMm' => 'Ukuran & Jarak', 'labelWidthMm' => 'Ukuran & Jarak', 'indentMm' => 'Ukuran & Jarak',
         'spaceBeforeMm' => 'Ukuran & Jarak', 'spaceAfterMm' => 'Ukuran & Jarak', 'spaceMm' => 'Ukuran & Jarak',
@@ -72,6 +77,7 @@ final class PropCatalog
         'double' => 'Ganda', 'single' => 'Tunggal', 'none' => 'Tanpa',
         'all' => 'Semua sisi', 'horizontal' => 'Mendatar saja',
         'bullet' => 'Bullet', 'number' => 'Nomor',
+        'auto' => 'Otomatis (bila lebih dari satu)', 'always' => 'Selalu', 'never' => 'Tanpa nomor',
         'solid' => 'Garis penuh', 'dashed' => 'Garis putus-putus', 'dotted' => 'Garis titik-titik',
     ];
 

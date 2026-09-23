@@ -26,3 +26,14 @@ salinan lama.
 - Bila Anda mem-publish view builder (`--views`), bandingkan juga dengan view paket — salinan Anda
   tidak ikut diperbarui.
 - Jalankan `php artisan document-builder:doctor`.
+
+## Ke 1.1 (blok Penerima)
+
+- Tidak ada langkah wajib; `Template::CURRENT_VERSION` tetap 1.
+- Template yang memakai blok `recipient` hanya bisa dibuka paket ≥ 1.1 — validator 1.0 menolak tipe
+  blok yang tidak dikenal.
+- Agar blok Penerima mengulang di kanvas builder, daftarkan contoh lewat
+  `VariableRegistry::defineCollection('recipients', [...])`; saat mencetak, sertakan list
+  `recipients` di data resolver. Tanpa keduanya blok tetap dirender sekali dengan `{{ recipient.* }}`.
+- Bila Anda mem-publish view builder, samakan kondisi Mini-RTE di `partials/inspector.blade.php`
+  (`in_array($key, ['text', 'itemText'], true)`).

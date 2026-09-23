@@ -237,6 +237,23 @@ body {
     display: inline;
 }
 
+/* Penerima: tabel (bukan flexbox) supaya nomor sejajar baris pertama entri
+   berbaris-baris, sama di browser maupun mpdf. */
+.db-recipient__table {
+    border-collapse: collapse;
+}
+
+.db-recipient__marker,
+.db-recipient__text {
+    padding: 0;
+    vertical-align: top;
+}
+
+.db-recipient__marker {
+    width: 6mm;
+    white-space: nowrap;
+}
+
 /* Tinggi diatur inline per blok; aturan ini hanya menegaskan kotaknya block-level. */
 .db-spacer__box {
     display: block;
@@ -247,7 +264,13 @@ body {
     height: 0;
 }
 
+/* display/vertical-align ditulis eksplisit walau sama dengan bawaan peramban
+   (hasil cetak tidak berubah): gambar ini diposisikan lewat text-align wadahnya,
+   sedangkan kanvas builder hidup di halaman aplikasi yang reset CSS-nya (mis.
+   preflight Tailwind: img { display: block }) membuat text-align diabaikan. */
 .db-image__img {
+    display: inline;
+    vertical-align: baseline;
     height: auto;
     max-width: 100%;
 }
@@ -276,7 +299,10 @@ body {
     line-height: 0;
 }
 
+/* Lihat .db-image__img: inline supaya text-align sel (textAlign/align) berlaku. */
 .db-signature__image {
+    display: inline;
+    vertical-align: baseline;
     max-width: 100%;
     pointer-events: none;
 }

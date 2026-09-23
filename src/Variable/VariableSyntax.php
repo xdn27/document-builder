@@ -15,6 +15,12 @@ final class VariableSyntax
 
     public function __construct(private readonly VariableResolver $resolver) {}
 
+    /** Resolver dokumen — dipakai blok berulang untuk membaca koleksi dan membuat scope per butir. */
+    public function resolver(): VariableResolver
+    {
+        return $this->resolver;
+    }
+
     /**
      * Teks masukan sudah melewati HtmlSanitizer, sehingga tag inline yang tersisa aman.
      * Nilai variabel selalu di-escape sebelum disisipkan.
