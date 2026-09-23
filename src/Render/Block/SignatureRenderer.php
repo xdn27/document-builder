@@ -47,7 +47,7 @@ final class SignatureRenderer implements BlockRenderer
         $rows = [
             $this->textRow($datelines, 'db-signature__dateline', null, $columns, null, $context),
             $this->textRow($this->field($columns, 'position', $context), 'db-signature__position', null, $columns, 'position', $context),
-            $this->spaceRow($columns, Mm::css((float) $block->prop('spaceMm')), $cellAlign, $context),
+            $this->spaceRow($block, $columns, Mm::css((float) $block->prop('spaceMm')), $cellAlign, $context),
             $this->textRow($this->field($columns, 'name', $context), 'db-signature__name', null, $columns, 'name', $context),
             $this->textRow($this->field($columns, 'nip', $context), 'db-signature__nip', 'NIP. ', $columns, 'nip', $context),
         ];
@@ -146,10 +146,16 @@ final class SignatureRenderer implements BlockRenderer
      * Tinggi diberikan ke <img> langsung (bukan div pembungkus di dalam sel tabel,
      * yang diabaikan mpdf — lihat catatan blok ini).
      *
+     * @param  list<array<string,mixed>>  $columns
      * @return list<array{html:string,space:bool}>
      */
-    private function spaceRow(array $columns, string $height, string $cellAlign, RenderContext $context): array
+    private function spaceRow(Block $block, array $columns, string $height, string $cellAlign, RenderContext $context): array
     {
+        $baseHeightMm = (float) $block->prop('spaceMm');
+        $blockScale = (float) ($block->prop('imageScalePercent') ?? $block->prop('signatureScale') ?? 100.0);
+        $blockOffsetY = (float) ($block->prop('imageOffsetYMm') ?? $block->prop('signatureOffsetYMm') ?? 0.0);
+        $blockOffsetX = (float) ($block->prop('imageOffsetXMm') ?? $block->prop('signatureOffsetXMm') ?? 0.0);
+
         return array_map(
             fn (array $column): array => [
                 'space' => true,
@@ -157,15 +163,28 @@ final class SignatureRenderer implements BlockRenderer
                     '<td class="db-signature__space" style="height:%s;text-align:%s">%s</td>',
                     $height,
                     $cellAlign,
-                    $this->signatureImage((string) $column['signature'], $height, $context),
+                    $this->signatureImage(
+                        (string) ($column['signature'] ?? ''),
+                        $baseHeightMm,
+                        (float) ($column['imageScalePercent'] ?? $column['signatureScale'] ?? $blockScale),
+                        (float) ($column['imageOffsetYMm'] ?? $column['signatureOffsetYMm'] ?? $blockOffsetY),
+                        (float) ($column['imageOffsetXMm'] ?? $column['signatureOffsetXMm'] ?? $blockOffsetX),
+                        $context,
+                    ),
                 ),
             ],
             $columns,
         );
     }
 
-    private function signatureImage(string $src, string $height, RenderContext $context): string
-    {
+    private function signatureImage(
+        string $src,
+        float $baseHeightMm,
+        float $scalePercent,
+        float $offsetYMm,
+        float $offsetXMm,
+        RenderContext $context,
+    ): string {
         $src = trim($src);
 
         if ($src === '') {
@@ -176,11 +195,54 @@ final class SignatureRenderer implements BlockRenderer
             return $context->marker('Sumber gambar ditolak');
         }
 
+        $style = $this->signatureImageStyle($baseHeightMm, $scalePercent, $offsetYMm, $offsetXMm);
+
         return sprintf(
-            '<img class="db-signature__image" src="%s" alt="" style="height:%s" />',
+            '<img class="db-signature__image" src="%s" alt="" style="%s" />',
             $context->escape($src),
-            $height,
+            $style,
         );
+    }
+
+    private function signatureImageStyle(
+        float $baseHeightMm,
+        float $scalePercent,
+        float $offsetYMm,
+        float $offsetXMm,
+    ): string {
+        $scale = $scalePercent > 0.0 ? ($scalePercent / 100.0) : 1.0;
+        $isDefault = abs($scale - 1.0) < 0.001 && abs($offsetYMm) < 0.001 && abs($offsetXMm) < 0.001;
+
+        if ($isDefault) {
+            return sprintf('height:%s', Mm::css($baseHeightMm));
+        }
+
+        $renderHeightMm = $baseHeightMm * $scale;
+        $extraHeightMm = $renderHeightMm - $baseHeightMm;
+        $marginTopMm = -($extraHeightMm / 2.0) + $offsetYMm;
+        $marginBottomMm = -($extraHeightMm / 2.0) - $offsetYMm;
+
+        $styles = [
+            sprintf('height:%s', Mm::css($renderHeightMm)),
+        ];
+
+        if (abs($marginTopMm) > 0.001) {
+            $styles[] = sprintf('margin-top:%s', Mm::css($marginTopMm));
+        }
+
+        if (abs($marginBottomMm) > 0.001) {
+            $styles[] = sprintf('margin-bottom:%s', Mm::css($marginBottomMm));
+        }
+
+        if (abs($offsetXMm) > 0.001) {
+            $styles[] = sprintf('margin-left:%s', Mm::css($offsetXMm));
+            $styles[] = sprintf('margin-right:%s', Mm::css(-$offsetXMm));
+        }
+
+        $styles[] = 'position:relative';
+        $styles[] = 'max-width:none';
+
+        return implode(';', $styles);
     }
 
     /** @return list<string> */

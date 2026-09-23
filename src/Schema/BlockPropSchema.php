@@ -69,6 +69,9 @@ final class BlockPropSchema
                 'widthPercent' => ['type' => 'float', 'default' => 100.0, 'min' => 20.0, 'max' => 100.0],
                 'spaceMm' => ['type' => 'float', 'default' => 25.0, 'min' => 0.0, 'max' => 60.0],
                 'spaceBeforeMm' => ['type' => 'float', 'default' => 8.0, 'min' => 0.0, 'max' => 50.0],
+                'imageScalePercent' => ['type' => 'float', 'default' => 100.0, 'min' => 20.0, 'max' => 300.0],
+                'imageOffsetYMm' => ['type' => 'float', 'default' => 0.0, 'min' => -50.0, 'max' => 50.0],
+                'imageOffsetXMm' => ['type' => 'float', 'default' => 0.0, 'min' => -100.0, 'max' => 100.0],
             ],
             BlockType::Table => [
                 'columns' => ['type' => 'rows', 'default' => [], 'keys' => [

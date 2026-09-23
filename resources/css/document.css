@@ -278,6 +278,7 @@ body {
 
 .db-signature__image {
     max-width: 100%;
+    pointer-events: none;
 }
 
 .db-signature__name {

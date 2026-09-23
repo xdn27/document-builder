@@ -7,6 +7,7 @@ use Maqiis\DocumentBuilder\Pdf\MpdfEngine;
 use Maqiis\DocumentBuilder\Render\HtmlRenderer;
 use Maqiis\DocumentBuilder\Render\RenderContext;
 use Maqiis\DocumentBuilder\Render\RenderedDocument;
+use Maqiis\DocumentBuilder\Schema\BlockType;
 use Maqiis\DocumentBuilder\Schema\SchemaValidator;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
@@ -325,5 +326,85 @@ class MpdfEngineTest extends TestCase
         // Pergeseran horizontal sebesar 10mm
         $diffXMm = ($x1 - $x0) * 25.4 / 72;
         $this->assertEqualsWithDelta(10.0, $diffXMm, 0.1);
+    }
+
+    public function test_signature_image_scales_and_offsets_in_mpdf_without_displacing_adjacent_text(): void
+    {
+        $createDoc = static function (float $scalePercent, float $offsetYMm, float $offsetXMm) {
+            $im = imagecreatetruecolor(100, 50);
+            $red = imagecolorallocate($im, 255, 0, 0);
+            imagefilledrectangle($im, 0, 0, 99, 49, $red);
+            ob_start();
+            imagepng($im);
+            $dataUri = 'data:image/png;base64,'.base64_encode((string) ob_get_clean());
+
+            $template = SchemaValidator::validate([
+                'version' => 1,
+                'page' => [],
+                'style' => [],
+                'zones' => [
+                    'header' => ['blocks' => []],
+                    'body' => ['blocks' => [[
+                        'id' => 'sig',
+                        'type' => BlockType::Signature->value,
+                        'props' => [
+                            'columns' => [[
+                                'place' => '', 'date' => '', 'position' => 'Kepala Sekolah',
+                                'signature' => $dataUri, 'name' => 'Ahmad Fauzi', 'nip' => '',
+                            ]],
+                            'spaceMm' => 25.0,
+                            'imageScalePercent' => $scalePercent,
+                            'imageOffsetYMm' => $offsetYMm,
+                            'imageOffsetXMm' => $offsetXMm,
+                        ],
+                    ]]],
+                    'footer' => ['blocks' => []],
+                ],
+            ]);
+
+            return (new HtmlRenderer)->render($template, RenderContext::sample());
+        };
+
+        $getImageAndTextCoords = static function (string $pdf): array {
+            preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $pdf, $streams);
+            $imgCoords = [0.0, 0.0, 0.0, 0.0];
+            $txtCoords = [];
+            foreach ($streams[1] as $raw) {
+                $decomp = @gzuncompress($raw);
+                if ($decomp === false) {
+                    continue;
+                }
+                if (preg_match('/q\s+([0-9.-]+)\s+([0-9.-]+)\s+([0-9.-]+)\s+([0-9.-]+)\s+([0-9.-]+)\s+([0-9.-]+)\s+cm\s+\/[^ ]+\s+Do\s+Q/', $decomp, $im)) {
+                    $imgCoords = [(float) $im[5], (float) $im[6], (float) $im[1], (float) $im[4]];
+                }
+                if (preg_match_all('/([0-9.]+)\s+([0-9.]+)\s+Td\s*\(\x00([^\)]+)\)/s', $decomp, $matches, PREG_SET_ORDER)) {
+                    foreach ($matches as $m) {
+                        $txtCoords[] = [(float) $m[1], (float) $m[2]];
+                    }
+                }
+            }
+
+            return [$imgCoords, $txtCoords];
+        };
+
+        $engine = new MpdfEngine;
+        $pdfBase = $engine->render($createDoc(100.0, 0.0, 0.0));
+        $pdfShifted = $engine->render($createDoc(100.0, 5.0, 4.0));
+
+        [$img0, $txt0] = $getImageAndTextCoords($pdfBase);
+        [$img1, $txt1] = $getImageAndTextCoords($pdfShifted);
+
+        // Posisi vertikal teks "Kepala Sekolah" dan "Ahmad Fauzi" tetap sama persis (tidak terdorong)
+        $this->assertNotEmpty($txt0);
+        $this->assertCount(count($txt0), $txt1);
+        $this->assertEqualsWithDelta($txt0[0][1], $txt1[0][1], 0.01);
+
+        // Gambar tanda tangan bergeser 5mm ke bawah (menumpuk/overlap ke arah nama)
+        $diffYMm = ($img0[1] - $img1[1]) * 25.4 / 72;
+        $this->assertEqualsWithDelta(5.0, $diffYMm, 0.1);
+
+        // Gambar tanda tangan bergeser 4mm ke kanan
+        $diffXMm = ($img1[0] - $img0[0]) * 25.4 / 72;
+        $this->assertEqualsWithDelta(4.0, $diffXMm, 0.1);
     }
 }

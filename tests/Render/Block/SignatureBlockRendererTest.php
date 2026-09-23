@@ -2,6 +2,9 @@
 
 namespace Maqiis\DocumentBuilder\Tests\Render\Block;
 
+use Maqiis\DocumentBuilder\Render\Block\SignatureRenderer;
+use Maqiis\DocumentBuilder\Render\RenderContext;
+use Maqiis\DocumentBuilder\Schema\Block;
 use Maqiis\DocumentBuilder\Schema\BlockType;
 use PHPUnit\Framework\TestCase;
 
@@ -105,5 +108,137 @@ class SignatureBlockRendererTest extends TestCase
         ]));
 
         $this->assertStringNotContainsString('margin-left:auto', $html);
+    }
+
+    public function test_signature_image_uses_default_scale_and_zero_offsets(): void
+    {
+        $html = $this->renderBlock(BlockType::Signature, [
+            'columns' => [[
+                'place' => '', 'date' => '', 'position' => 'Kepala',
+                'signature' => 'data:image/png;base64,iVBORw0KGgo=', 'name' => 'Ahmad', 'nip' => '',
+            ]],
+            'spaceMm' => 25.0,
+        ]);
+
+        $this->assertStringContainsString('style="height:25mm"', $html);
+        $this->assertStringNotContainsString('margin-bottom:', $html);
+        $this->assertStringNotContainsString('margin-left:', $html);
+        $this->assertStringNotContainsString('max-width:none', $html);
+    }
+
+    public function test_signature_image_scale_adjusts_height_and_centers_extra_height_via_negative_margins(): void
+    {
+        $html = $this->renderBlock(BlockType::Signature, [
+            'columns' => [[
+                'place' => '', 'date' => '', 'position' => 'Kepala',
+                'signature' => 'data:image/png;base64,iVBORw0KGgo=', 'name' => 'Ahmad', 'nip' => '',
+            ]],
+            'spaceMm' => 25.0,
+            'imageScalePercent' => 120.0,
+        ]);
+
+        // 25mm * 1.2 = 30mm, extra = 5mm, -5/2 = -2.5mm on top and bottom
+        $this->assertStringContainsString('height:30mm', $html);
+        $this->assertStringContainsString('margin-top:-2.5mm', $html);
+        $this->assertStringContainsString('margin-bottom:-2.5mm', $html);
+        $this->assertStringContainsString('position:relative', $html);
+        $this->assertStringContainsString('max-width:none', $html);
+    }
+
+    public function test_signature_image_vertical_offset_shifts_margins(): void
+    {
+        // Shift downwards towards name below (imageOffsetYMm = 4.0)
+        $htmlDown = $this->renderBlock(BlockType::Signature, [
+            'columns' => [[
+                'place' => '', 'date' => '', 'position' => 'Kepala',
+                'signature' => 'data:image/png;base64,iVBORw0KGgo=', 'name' => 'Ahmad', 'nip' => '',
+            ]],
+            'spaceMm' => 25.0,
+            'imageOffsetYMm' => 4.0,
+        ]);
+
+        $this->assertStringContainsString('height:25mm', $htmlDown);
+        $this->assertStringContainsString('margin-top:4mm', $htmlDown);
+        $this->assertStringContainsString('margin-bottom:-4mm', $htmlDown);
+
+        // Shift upwards towards position above (imageOffsetYMm = -4.0)
+        $htmlUp = $this->renderBlock(BlockType::Signature, [
+            'columns' => [[
+                'place' => '', 'date' => '', 'position' => 'Kepala',
+                'signature' => 'data:image/png;base64,iVBORw0KGgo=', 'name' => 'Ahmad', 'nip' => '',
+            ]],
+            'spaceMm' => 25.0,
+            'imageOffsetYMm' => -4.0,
+        ]);
+
+        $this->assertStringContainsString('height:25mm', $htmlUp);
+        $this->assertStringContainsString('margin-top:-4mm', $htmlUp);
+        $this->assertStringContainsString('margin-bottom:4mm', $htmlUp);
+    }
+
+    public function test_signature_image_horizontal_offset_shifts_margin_left_and_right(): void
+    {
+        $html = $this->renderBlock(BlockType::Signature, [
+            'columns' => [[
+                'place' => '', 'date' => '', 'position' => 'Kepala',
+                'signature' => 'data:image/png;base64,iVBORw0KGgo=', 'name' => 'Ahmad', 'nip' => '',
+            ]],
+            'spaceMm' => 25.0,
+            'imageOffsetXMm' => 6.0,
+        ]);
+
+        $this->assertStringContainsString('height:25mm', $html);
+        $this->assertStringContainsString('margin-left:6mm', $html);
+        $this->assertStringContainsString('margin-right:-6mm', $html);
+    }
+
+    public function test_signature_image_column_override_takes_precedence_over_block_prop(): void
+    {
+        $renderer = new SignatureRenderer;
+        $context = RenderContext::sample();
+
+        $block = new Block('s1', BlockType::Signature, [
+            'columns' => [[
+                'place' => '', 'date' => '', 'position' => 'Kepala',
+                'signature' => 'data:image/png;base64,iVBORw0KGgo=', 'name' => 'Ahmad', 'nip' => '',
+                'imageScalePercent' => 140.0,
+                'imageOffsetYMm' => -5.0,
+                'imageOffsetXMm' => 2.0,
+            ]],
+            'spaceMm' => 25.0,
+            'imageScalePercent' => 100.0,
+            'imageOffsetYMm' => 0.0,
+            'imageOffsetXMm' => 0.0,
+        ]);
+
+        $html = $renderer->render($block, $context);
+
+        // Column override: 25 * 1.4 = 35mm, extra = 10mm, base top margin = -5mm.
+        // With offsetY = -5mm -> marginTop = -5 + (-5) = -10mm, marginBottom = -5 - (-5) = 0mm.
+        $this->assertStringContainsString('height:35mm', $html);
+        $this->assertStringContainsString('margin-top:-10mm', $html);
+        $this->assertStringContainsString('margin-left:2mm', $html);
+    }
+
+    public function test_signature_image_supports_aliases(): void
+    {
+        $renderer = new SignatureRenderer;
+        $context = RenderContext::sample();
+
+        $block = new Block('s1', BlockType::Signature, [
+            'columns' => [[
+                'place' => '', 'date' => '', 'position' => 'Kepala',
+                'signature' => 'data:image/png;base64,iVBORw0KGgo=', 'name' => 'Ahmad', 'nip' => '',
+            ]],
+            'spaceMm' => 25.0,
+            'signatureScale' => 120.0,
+            'signatureOffsetYMm' => 2.0,
+            'signatureOffsetXMm' => 3.0,
+        ]);
+
+        $html = $renderer->render($block, $context);
+
+        $this->assertStringContainsString('height:30mm', $html);
+        $this->assertStringContainsString('margin-left:3mm', $html);
     }
 }
