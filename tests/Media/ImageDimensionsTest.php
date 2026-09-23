@@ -91,7 +91,6 @@ class ImageDimensionsTest extends TestCase
         $image = imagecreatetruecolor($width, $height);
         $path = tempnam(sys_get_temp_dir(), 'db-image-dimensions-').'.png';
         imagepng($image, $path);
-        imagedestroy($image);
 
         return $path;
     }
@@ -102,7 +101,6 @@ class ImageDimensionsTest extends TestCase
         ob_start();
         imagepng($image);
         $bytes = ob_get_clean();
-        imagedestroy($image);
 
         return 'data:image/png;base64,'.base64_encode($bytes);
     }

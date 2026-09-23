@@ -161,7 +161,6 @@ class MpdfEngineTest extends TestCase
     private function invokeResolveImages(MpdfEngine $engine, ?string $html): ?string
     {
         $method = new ReflectionMethod(MpdfEngine::class, 'resolveImages');
-        $method->setAccessible(true);
 
         return $method->invoke($engine, $html);
     }
@@ -170,7 +169,6 @@ class MpdfEngineTest extends TestCase
     {
         $engine = new MpdfEngine;
         $method = new ReflectionMethod(MpdfEngine::class, 'neutralizeTopBleed');
-        $method->setAccessible(true);
 
         $htmlWithCustomMargin = '<div class="db-letterhead-image__bleed" style="margin-top:-15mm;margin-right:-10mm;margin-left:-10mm" data-margin-top="5mm"><img src="x" /></div>';
         $neutralized = $method->invoke($engine, $htmlWithCustomMargin);

@@ -292,7 +292,6 @@ class MediaBlockRendererTest extends TestCase
         ob_start();
         imagepng($image);
         $bytes = ob_get_clean();
-        imagedestroy($image);
 
         return 'data:image/png;base64,'.base64_encode($bytes);
     }

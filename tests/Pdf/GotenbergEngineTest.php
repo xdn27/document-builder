@@ -36,7 +36,6 @@ class GotenbergEngineTest extends TestCase
         $document = $this->documentFromFixture('surat-satu-halaman.json');
 
         $method = new ReflectionMethod(GotenbergEngine::class, 'readyHtml');
-        $method->setAccessible(true);
         $html = $method->invoke(new GotenbergEngine('http://gotenberg:3000'), $document);
 
         $this->assertStringNotContainsString('window.print()', $html);
