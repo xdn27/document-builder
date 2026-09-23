@@ -98,6 +98,12 @@ export function initBuilder({
             state.selectedId = detail.selectedId;
         }
 
+        const activeEditor = doc.querySelector?.('.db-mini-rte [data-rte-editor]');
+        const activeSource = doc.querySelector?.('.db-mini-rte [data-rte-source]');
+        if (activeEditor && activeSource && doc.activeElement !== activeEditor) {
+            activeEditor.innerHTML = activeSource.value;
+        }
+
         // Pembaruan berurutan: paginasi yang sedang berjalan diselesaikan dulu,
         // supaya dua pembaruan beruntun tidak saling menimpa kanvas setengah jadi.
         state.rendering = state.rendering.then(() => renderInto(doc, canvas, styleEl, state, detail, onRendered));
@@ -108,6 +114,8 @@ export function initBuilder({
     initOutlineDragging({ document: doc, onReorder });
 
     const inlineEditing = initInlineEditing({ document: doc, canvas, onInlineEdit, onEditingChange });
+
+    initMiniRte({ document: doc });
 
     // Kanvas awal sudah dicetak server sebagai .doc-flow; cukup dipaginasi.
     if (canvas.querySelector('.doc-flow')) {
@@ -430,5 +438,265 @@ export function initOutlineDragging({ document: doc = globalThis.document, onReo
         }
 
         dragged = null;
+    });
+}
+
+/**
+ * Mini-RTE untuk inspektor (prop rich text seperti Paragraph 'text').
+ * Mengubah contenteditable menjadi subset aman (<b>, <i>, <u>, <br>),
+ * mensinkronkan ke textarea Livewire via input event, dan menyediakan
+ * toolbar pemformatan (Bold, Italic, Underline, Clear Format, Variable, Source toggle).
+ */
+export function initMiniRte({ document: doc = globalThis.document } = {}) {
+    if (!doc || typeof doc.addEventListener !== 'function' || doc._dbMiniRteInitialized) {
+        return;
+    }
+
+    doc._dbMiniRteInitialized = true;
+
+    let rteDebounceTimer = null;
+    let savedRange = null;
+    let lastActiveEditor = null;
+
+    function saveSelection() {
+        const selection = doc.getSelection?.();
+        if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const container = range.commonAncestorContainer;
+            const editor = container?.nodeType === 1
+                ? container.closest?.('[data-rte-editor]')
+                : container?.parentElement?.closest?.('[data-rte-editor]');
+            if (editor) {
+                savedRange = range.cloneRange?.() || range;
+                lastActiveEditor = editor;
+            }
+        }
+    }
+
+    function syncRteToSource(editor, source) {
+        const clean = serializeInlineEdit(editor, true);
+        if (source.value !== clean) {
+            source.value = clean;
+            source.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    }
+
+    doc.addEventListener('selectionchange', () => {
+        saveSelection();
+    });
+
+    // Mencegah tombol toolbar mencuri fokus dari contenteditable
+    doc.addEventListener('mousedown', (event) => {
+        const btn = event.target?.closest?.('[data-rte-cmd], [data-rte-toggle], [data-rte-insert]');
+        if (btn) {
+            event.preventDefault();
+        }
+    });
+
+    // Tombol format: bold, italic, underline, removeFormat
+    doc.addEventListener('click', (event) => {
+        const btn = event.target?.closest?.('[data-rte-cmd]');
+        if (!btn) return;
+        event.preventDefault();
+
+        const container = btn.closest?.('.db-mini-rte');
+        if (!container) return;
+
+        const editor = container.querySelector?.('[data-rte-editor]');
+        const source = container.querySelector?.('[data-rte-source]');
+        if (!editor || !source) return;
+
+        if (source.classList?.contains?.('d-none') === false) return;
+
+        editor.focus?.();
+        if (savedRange && editor.contains?.(savedRange.commonAncestorContainer)) {
+            const selection = doc.getSelection?.();
+            if (selection && selection.removeAllRanges && selection.addRange) {
+                selection.removeAllRanges();
+                selection.addRange(savedRange);
+            }
+        }
+
+        const cmd = btn.dataset?.rteCmd;
+        if (cmd && typeof doc.execCommand === 'function') {
+            doc.execCommand(cmd, false, null);
+        }
+
+        syncRteToSource(editor, source);
+        saveSelection();
+    });
+
+    // Tombol toggle tampilan kode HTML (Source) vs Visual WYSIWYG
+    doc.addEventListener('click', (event) => {
+        const btn = event.target?.closest?.('[data-rte-toggle="source"]');
+        if (!btn) return;
+        event.preventDefault();
+
+        const container = btn.closest?.('.db-mini-rte');
+        if (!container) return;
+
+        const editor = container.querySelector?.('[data-rte-editor]');
+        const source = container.querySelector?.('[data-rte-source]');
+        if (!editor || !source) return;
+
+        const isShowingSource = source.classList?.contains?.('d-none') === false;
+
+        if (isShowingSource) {
+            editor.innerHTML = source.value;
+            source.classList?.add?.('d-none');
+            editor.classList?.remove?.('d-none');
+            btn.classList?.remove?.('active');
+            btn.setAttribute?.('title', 'Lihat kode HTML');
+            editor.focus?.();
+        } else {
+            syncRteToSource(editor, source);
+            editor.classList?.add?.('d-none');
+            source.classList?.remove?.('d-none');
+            btn.classList?.add?.('active');
+            btn.setAttribute?.('title', 'Kembali ke mode visual');
+            source.focus?.();
+        }
+    });
+
+    // Sisipkan token variabel template
+    doc.addEventListener('click', (event) => {
+        const item = event.target?.closest?.('[data-rte-insert]');
+        if (!item) return;
+        event.preventDefault();
+
+        const token = item.dataset?.rteInsert;
+        if (!token) return;
+
+        const container = item.closest?.('.db-mini-rte') || lastActiveEditor?.closest?.('.db-mini-rte');
+        if (!container) return;
+
+        const editor = container.querySelector?.('[data-rte-editor]');
+        const source = container.querySelector?.('[data-rte-source]');
+        if (!editor || !source) return;
+
+        const isShowingSource = source.classList?.contains?.('d-none') === false;
+
+        if (isShowingSource) {
+            const start = source.selectionStart ?? source.value.length;
+            const end = source.selectionEnd ?? source.value.length;
+            const val = source.value;
+            source.value = val.substring(0, start) + token + val.substring(end);
+            source.selectionStart = source.selectionEnd = start + token.length;
+            source.focus?.();
+            source.dispatchEvent(new Event('input', { bubbles: true }));
+        } else {
+            editor.focus?.();
+            const selection = doc.getSelection?.();
+            if (savedRange && editor.contains?.(savedRange.commonAncestorContainer)) {
+                if (selection && selection.removeAllRanges && selection.addRange) {
+                    selection.removeAllRanges();
+                    selection.addRange(savedRange);
+                }
+            }
+
+            if (selection && selection.rangeCount > 0 && editor.contains?.(selection.getRangeAt(0).commonAncestorContainer)) {
+                const range = selection.getRangeAt(0);
+                range.deleteContents?.();
+                const node = doc.createTextNode ? doc.createTextNode(token) : { nodeType: 3, nodeValue: token };
+                range.insertNode?.(node);
+                range.setStartAfter?.(node);
+                range.collapse?.(true);
+                selection.removeAllRanges?.();
+                selection.addRange?.(range);
+            } else if (doc.createTextNode) {
+                editor.appendChild?.(doc.createTextNode(token));
+            }
+
+            syncRteToSource(editor, source);
+            saveSelection();
+        }
+    });
+
+    // Input debounce di contenteditable
+    doc.addEventListener('input', (event) => {
+        const editor = event.target?.closest?.('[data-rte-editor]');
+        if (!editor) return;
+
+        const container = editor.closest?.('.db-mini-rte');
+        const source = container?.querySelector?.('[data-rte-source]');
+        if (!source) return;
+
+        clearTimeout(rteDebounceTimer);
+        rteDebounceTimer = setTimeout(() => {
+            syncRteToSource(editor, source);
+        }, 300);
+    });
+
+    // Focusout di contenteditable langsung commit
+    doc.addEventListener('focusout', (event) => {
+        const editor = event.target?.closest?.('[data-rte-editor]');
+        if (!editor) return;
+
+        const container = editor.closest?.('.db-mini-rte');
+        const source = container?.querySelector?.('[data-rte-source]');
+        if (!source) return;
+
+        clearTimeout(rteDebounceTimer);
+        syncRteToSource(editor, source);
+    });
+
+    // Paste di contenteditable: tempel plain text dengan baris baru sebagai <br>
+    doc.addEventListener('paste', (event) => {
+        const editor = event.target?.closest?.('[data-rte-editor]');
+        if (!editor) return;
+
+        event.preventDefault();
+
+        const text = (event.clipboardData?.getData?.('text/plain') || '').replace(/\r\n?/g, '\n');
+        const selection = doc.getSelection?.();
+
+        if (!selection || selection.rangeCount === 0) return;
+
+        const range = selection.getRangeAt(0);
+        if (!editor.contains?.(range.commonAncestorContainer)) return;
+
+        range.deleteContents?.();
+
+        text.split('\n').forEach((line, index) => {
+            if (index > 0 && doc.createElement) {
+                range.insertNode?.(doc.createElement('br'));
+            }
+            const node = doc.createTextNode ? doc.createTextNode(line) : { nodeType: 3, nodeValue: line };
+            range.insertNode?.(node);
+            range.setStartAfter?.(node);
+            range.collapse?.(true);
+        });
+
+        selection.removeAllRanges?.();
+        selection.addRange?.(range);
+
+        const container = editor.closest?.('.db-mini-rte');
+        const source = container?.querySelector?.('[data-rte-source]');
+        if (source) {
+            syncRteToSource(editor, source);
+        }
+    });
+
+    // Keyboard shortcuts (Ctrl+B, Ctrl+I, Ctrl+U)
+    doc.addEventListener('keydown', (event) => {
+        const editor = event.target?.closest?.('[data-rte-editor]');
+        if (!editor) return;
+
+        if (event.ctrlKey || event.metaKey) {
+            const key = event.key?.toLowerCase();
+            if (key === 'b' || key === 'i' || key === 'u') {
+                event.preventDefault();
+                const cmd = key === 'b' ? 'bold' : (key === 'i' ? 'italic' : 'underline');
+                if (typeof doc.execCommand === 'function') {
+                    doc.execCommand(cmd, false, null);
+                }
+                const container = editor.closest?.('.db-mini-rte');
+                const source = container?.querySelector?.('[data-rte-source]');
+                if (source) {
+                    syncRteToSource(editor, source);
+                }
+                saveSelection();
+            }
+        }
     });
 }

@@ -85,7 +85,7 @@ test('initBuilder tidak meledak saat kanvas tidak ada di halaman', () => {
  * dblclick → commit / Escape → batal. Node palsu di bawah hanya
  * mengimplementasikan permukaan DOM yang dipakai serializer.
  */
-import { initInlineEditing, serializeInlineEdit } from '../../resources/js/builder.mjs';
+import { initInlineEditing, initMiniRte, serializeInlineEdit } from '../../resources/js/builder.mjs';
 
 function fakeText(value) {
     return { nodeType: 3, nodeValue: value };
@@ -226,4 +226,108 @@ test('Escape membatalkan sunting dan mengembalikan HTML awal', () => {
     assert.equal(el.blurred, true);
     assert.equal(calls.edit, 0);
     assert.deepEqual(calls.editing, [true, false]);
+});
+
+test('initMiniRte tombol format memicu execCommand dan sinkronisasi ke source textarea', () => {
+    const listeners = {};
+    let executedCmd = null;
+    let dispatchedEvent = null;
+
+    const doc = {
+        addEventListener: (type, fn) => { (listeners[type] ||= []).push(fn); },
+        getSelection: () => null,
+        execCommand: (cmd) => { executedCmd = cmd; },
+    };
+
+    initMiniRte({ document: doc });
+
+    const source = {
+        value: 'Halo',
+        classList: { contains: (cls) => cls === 'd-none' },
+        dispatchEvent: (event) => { dispatchedEvent = event?.type; },
+    };
+
+    const editor = fakeTag('div', [fakeText('Halo'), fakeTag('b', [fakeText('tebal')])]);
+    editor.dataset = { rteEditor: 'true' };
+    editor.focus = () => {};
+
+    const container = {
+        querySelector: (sel) => (sel === '[data-rte-editor]' ? editor : sel === '[data-rte-source]' ? source : null),
+    };
+
+    const btn = {
+        dataset: { rteCmd: 'bold' },
+        closest: (sel) => (sel.includes('[data-rte-cmd]') ? btn : sel === '.db-mini-rte' ? container : null),
+    };
+
+    let prevented = false;
+    (listeners['mousedown'] || []).forEach((fn) => fn({
+        target: btn,
+        preventDefault: () => { prevented = true; },
+    }));
+    assert.equal(prevented, true);
+
+    (listeners['click'] || []).forEach((fn) => fn({
+        target: btn,
+        preventDefault: () => {},
+    }));
+
+    assert.equal(executedCmd, 'bold');
+    assert.equal(source.value, 'Halo<b>tebal</b>');
+    assert.equal(dispatchedEvent, 'input');
+});
+
+test('initMiniRte toggle source beralih antara editor dan textarea', () => {
+    const listeners = {};
+    const doc = {
+        addEventListener: (type, fn) => { (listeners[type] ||= []).push(fn); },
+        getSelection: () => null,
+    };
+
+    initMiniRte({ document: doc });
+
+    const classes = { source: new Set(['d-none']), editor: new Set() };
+    const source = {
+        value: '<b>Kode</b>',
+        classList: {
+            contains: (cls) => classes.source.has(cls),
+            add: (cls) => classes.source.add(cls),
+            remove: (cls) => classes.source.delete(cls),
+        },
+        dispatchEvent: () => {},
+        focus: () => {},
+    };
+    const editor = fakeTag('div', [fakeTag('b', [fakeText('Visual')])]);
+    editor.classList = {
+        contains: (cls) => classes.editor.has(cls),
+        add: (cls) => classes.editor.add(cls),
+        remove: (cls) => classes.editor.delete(cls),
+    };
+    editor.focus = () => {};
+
+    const container = {
+        querySelector: (sel) => (sel === '[data-rte-editor]' ? editor : sel === '[data-rte-source]' ? source : null),
+    };
+
+    const toggleBtn = {
+        dataset: { rteToggle: 'source' },
+        classList: { add: () => {}, remove: () => {} },
+        setAttribute: () => {},
+        closest: (sel) => (sel.includes('[data-rte-toggle="source"]') ? toggleBtn : sel === '.db-mini-rte' ? container : null),
+    };
+
+    // Click 1: Visual -> Source
+    (listeners['click'] || []).forEach((fn) => fn({ target: toggleBtn, preventDefault: () => {} }));
+    assert.equal(classes.source.has('d-none'), false);
+    assert.equal(classes.editor.has('d-none'), true);
+    assert.equal(source.value, '<b>Visual</b>');
+
+    // Pengguna menyunting langsung kode HTML di textarea
+    source.value = '<b>Kode</b>';
+
+    // Click 2: Source -> Visual
+    (listeners['click'] || []).forEach((fn) => fn({ target: toggleBtn, preventDefault: () => {} }));
+    assert.equal(classes.source.has('d-none'), true);
+    assert.equal(classes.editor.has('d-none'), false);
+    assert.equal(editor.innerHTML, '<b>Kode</b>');
 });

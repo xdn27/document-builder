@@ -215,12 +215,66 @@
                                             @break
 
                                             @default
-                                                @if (in_array($key, ['text', 'payload'], true))
+                                                @if ($key === 'text')
+                                                    <div class="db-mini-rte border rounded" wire:ignore>
+                                                        <div class="db-mini-rte__toolbar bg-light border-bottom p-1 d-flex justify-content-between align-items-center">
+                                                            <div class="btn-group btn-group-sm" role="group">
+                                                                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 fw-bold"
+                                                                    data-rte-cmd="bold" title="Tebal (Ctrl+B)">B</button>
+                                                                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 fst-italic"
+                                                                    data-rte-cmd="italic" title="Miring (Ctrl+I)">I</button>
+                                                                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 text-decoration-underline"
+                                                                    data-rte-cmd="underline" title="Garis bawah (Ctrl+U)">U</button>
+                                                                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2"
+                                                                    data-rte-cmd="removeFormat" title="Hapus format">
+                                                                    <i class="ti ti-clear-formatting" aria-hidden="true"></i>
+                                                                </button>
+                                                            </div>
+                                                            <div class="d-flex gap-1 align-items-center">
+                                                                @if (! empty($variables))
+                                                                    <div class="btn-group btn-group-sm">
+                                                                        <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 dropdown-toggle"
+                                                                            data-bs-toggle="dropdown" aria-expanded="false" title="Sisipkan variabel">
+                                                                            <i class="ti ti-braces" aria-hidden="true"></i>
+                                                                        </button>
+                                                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="max-height: 250px; overflow-y: auto;">
+                                                                            @foreach ($variables as $group => $entries)
+                                                                                <li><h6 class="dropdown-header small py-1">{{ $group }}</h6></li>
+                                                                                @foreach ($entries as $entry)
+                                                                                    <li>
+                                                                                        <button type="button" class="dropdown-item small py-1"
+                                                                                            data-rte-insert="{{ $token($entry['path']) }}">
+                                                                                            {{ $entry['label'] }} <small class="text-muted">({{ $token($entry['path']) }})</small>
+                                                                                        </button>
+                                                                                    </li>
+                                                                                @endforeach
+                                                                            @endforeach
+                                                                        </ul>
+                                                                    </div>
+                                                                @endif
+                                                                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2"
+                                                                    data-rte-toggle="source" title="Lihat kode HTML">
+                                                                    <i class="ti ti-code" aria-hidden="true"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="db-mini-rte__editor p-2 bg-white"
+                                                            contenteditable="true"
+                                                            data-rte-editor="true"
+                                                            spellcheck="false"
+                                                            style="min-height: 5.5rem; max-height: 14rem; overflow-y: auto; outline: none;">{!! $block['props'][$key] ?? '' !!}</div>
+
+                                                        <textarea id="prop-{{ $key }}"
+                                                            class="db-mini-rte__source form-control form-control-sm border-0 rounded-0 d-none font-monospace"
+                                                            rows="4"
+                                                            data-rte-source="true"
+                                                            wire:model.debounce.500ms="{{ $path }}.{{ $key }}">{{ $block['props'][$key] ?? '' }}</textarea>
+                                                    </div>
+                                                    <small class="text-muted">Gunakan tombol atau Ctrl+B, Ctrl+I, Ctrl+U untuk memformat.</small>
+                                                @elseif ($key === 'payload')
                                                     <textarea id="prop-{{ $key }}" class="form-control form-control-sm" rows="4"
                                                         wire:model.debounce.500ms="{{ $path }}.{{ $key }}"></textarea>
-                                                    @if ($key === 'text')
-                                                        <small class="text-muted">Boleh memakai &lt;b&gt;, &lt;i&gt;, &lt;u&gt;, &lt;br&gt;.</small>
-                                                    @endif
                                                 @else
                                                     <input id="prop-{{ $key }}" type="text" class="form-control form-control-sm"
                                                         wire:model.debounce.500ms="{{ $path }}.{{ $key }}">
