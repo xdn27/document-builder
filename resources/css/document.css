@@ -10,6 +10,10 @@
     font-family: var(--db-font-family);
     font-size: var(--db-font-size);
     line-height: var(--db-line-height);
+    /* mpdf memangkas margin atas elemen pertama di tiap halaman (margin-collapse: collapse).
+       Nilai separate mencegah pemangkasan ini agar spaceBeforeMm pada blok pertama (mis. paragraf)
+       dihormati sama persis seperti di browser. */
+    margin-collapse: separate;
 }
 
 .doc-root * {

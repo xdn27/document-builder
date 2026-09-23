@@ -223,4 +223,49 @@ class MpdfEngineTest extends TestCase
 
         $this->assertTrue($found, 'Perintah gambar tidak ditemukan di stream PDF.');
     }
+
+    public function test_paragraph_space_before_is_honored_in_mpdf(): void
+    {
+        $createDoc = static function (float $spaceBefore): RenderedDocument {
+            $template = SchemaValidator::validate([
+                'version' => 1,
+                'page' => ['size' => 'A4', 'orientation' => 'portrait', 'margin' => ['top' => 20, 'right' => 20, 'bottom' => 20, 'left' => 20]],
+                'style' => ['fontFamily' => 'tinos', 'fontSize' => 12, 'lineHeight' => 1.5],
+                'zones' => [
+                    'body' => ['blocks' => [
+                        ['id' => 'p1', 'type' => 'paragraph', 'props' => ['text' => 'Isi Paragraf', 'spaceBeforeMm' => $spaceBefore]],
+                    ]],
+                    'footer' => ['blocks' => []],
+                ],
+            ]);
+
+            return (new HtmlRenderer)->render($template, RenderContext::sample());
+        };
+
+        $getY = static function (string $pdf): float {
+            preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $pdf, $streams);
+            foreach ($streams[1] as $raw) {
+                $decomp = @gzuncompress($raw);
+                if ($decomp !== false && preg_match('/([0-9.]+)\s+([0-9.]+)\s+Td\s*\(\x00I/s', $decomp, $m)) {
+                    return (float) $m[2];
+                }
+            }
+
+            return 0.0;
+        };
+
+        $engine = new MpdfEngine;
+        $pdf0 = $engine->render($createDoc(0.0));
+        $pdf15 = $engine->render($createDoc(15.0));
+
+        $y0 = $getY($pdf0);
+        $y15 = $getY($pdf15);
+
+        $this->assertGreaterThan(0.0, $y0);
+        $this->assertGreaterThan(0.0, $y15);
+
+        // 15mm setara 42.52 pt (15 * 72 / 25.4); y0 - y15 harus mencerminkan pergeseran ke bawah sebesar 15mm
+        $diffMm = ($y0 - $y15) * 25.4 / 72;
+        $this->assertEqualsWithDelta(15.0, $diffMm, 0.1);
+    }
 }
