@@ -43,7 +43,7 @@ final class TableRenderer implements BlockRenderer
                 $block->prop('headerBold') === true ? '' : ' db-table__th--regular',
                 $width > 0.0 ? sprintf('width:%s%%;', $this->number($width)) : '',
                 $context->escape($this->align($column['align'])),
-                $context->editAttr('columns', $columnIndex, key: 'label', rich: true),
+                $context->editAttr('columns', (string) $column['label'], $columnIndex, key: 'label', rich: true),
                 $context->rich((string) $column['label']),
             );
         }
@@ -57,7 +57,7 @@ final class TableRenderer implements BlockRenderer
                 $html .= sprintf(
                     '<td class="db-table__td" style="text-align:%s"%s>%s</td>',
                     $context->escape($this->align($column['align'])),
-                    $context->editAttr('rows', $rowIndex, $index, rich: true),
+                    $context->editAttr('rows', (string) ($row[$index] ?? ''), $rowIndex, $index, rich: true),
                     $context->rich((string) ($row[$index] ?? '')),
                 );
             }

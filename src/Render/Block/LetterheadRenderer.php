@@ -32,7 +32,7 @@ final class LetterheadRenderer implements BlockRenderer
             $html .= sprintf(
                 '<div class="db-letterhead__line db-letterhead__line--%d"%s>%s</div>',
                 $index + 1,
-                $context->editAttr($key, rich: true),
+                $context->editAttr($key, $raw, rich: true),
                 $context->rich($raw),
             );
         }

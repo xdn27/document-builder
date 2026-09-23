@@ -58,7 +58,7 @@ final class ListRenderer implements BlockRenderer
                 .'<span class="db-list__text"%s>%s</span></div>',
                 Mm::css($indent * ($level + 1)),
                 $context->escape($marker),
-                $context->editAttr('items', $itemIndex, key: 'text', rich: true),
+                $context->editAttr('items', (string) $item['text'], $itemIndex, key: 'text', rich: true),
                 $context->rich((string) $item['text']),
             );
         }

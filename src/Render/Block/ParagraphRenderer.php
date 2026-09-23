@@ -31,7 +31,7 @@ final class ParagraphRenderer implements BlockRenderer
             '<p dir="%s" style="%s"%s>%s</p>',
             $context->escape((string) $block->prop('direction')),
             $style,
-            $context->editAttr('text', rich: true),
+            $context->editAttr('text', (string) $block->prop('text'), rich: true),
             $context->rich((string) $block->prop('text')),
         );
     }

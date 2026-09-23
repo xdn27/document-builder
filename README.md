@@ -211,6 +211,12 @@ no-op selama strategi masih `data-uri`.
   memaku kop pada `margin_header` dan mengabaikan margin atas negatif di dalamnya, jadi `MpdfEngine`
   menurunkan `margin_header` ke 0 dan menetralkan margin itu khusus untuk PDF — lihat
   `LetterheadImageRenderer` dan `MpdfEngine::neutralizeTopBleed()`.
+- **Sunting inline di kanvas hanya untuk teks tanpa variabel.** Pratinjau builder dirender dengan
+  `DocumentRenderer::render(..., editable: true)` sehingga region teks bertanda `data-edit-*`
+  (lihat `RenderContext::editAttr()`); double-click menyunting, blur menyimpan, Escape membatalkan.
+  Region yang memuat `{{ ... }}` sengaja tidak ditandai, karena kanvas menampilkan nilai contoh dan
+  commit akan menimpa tokennya. Region seperti itu tetap disunting lewat inspektor. Cetak/PDF
+  tidak pernah memuat atribut ini.
 - **Berkas yatim tidak dibersihkan.** `FilesystemImageUploadStorage` tidak menghapus berkas lama saat
   sebuah blok diunggah ulang atau blok dihapus.
 

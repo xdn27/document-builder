@@ -43,11 +43,11 @@ final class SignatureRenderer implements BlockRenderer
         );
 
         $rows = [
-            $this->textRow($datelines, 'db-signature__dateline', null, null, $context),
-            $this->textRow($this->field($columns, 'position', $context), 'db-signature__position', null, 'position', $context),
+            $this->textRow($datelines, 'db-signature__dateline', null, $columns, null, $context),
+            $this->textRow($this->field($columns, 'position', $context), 'db-signature__position', null, $columns, 'position', $context),
             $this->spaceRow($columns, Mm::css((float) $block->prop('spaceMm')), $cellAlign, $context),
-            $this->textRow($this->field($columns, 'name', $context), 'db-signature__name', null, 'name', $context),
-            $this->textRow($this->field($columns, 'nip', $context), 'db-signature__nip', 'NIP. ', 'nip', $context),
+            $this->textRow($this->field($columns, 'name', $context), 'db-signature__name', null, $columns, 'name', $context),
+            $this->textRow($this->field($columns, 'nip', $context), 'db-signature__nip', 'NIP. ', $columns, 'nip', $context),
         ];
 
         $html = '';
@@ -103,27 +103,34 @@ final class SignatureRenderer implements BlockRenderer
 
     /**
      * @param  list<string>  $values  HTML aman per kolom
+     * @param  list<array<string,mixed>>  $columns  nilai schema mentah, sumber atribut sunting inline
      * @return list<array{html:string,space:bool}>|null null bila tidak ada kolom yang memakainya
      */
-    private function textRow(array $values, string $class, ?string $prefix, ?string $editKey, RenderContext $context): ?array
+    private function textRow(array $values, string $class, ?string $prefix, array $columns, ?string $editKey, RenderContext $context): ?array
     {
         if (array_filter($values, static fn (string $v): bool => $v !== '') === []) {
             return null;
         }
 
+        $columns = array_values($columns);
         $cells = [];
 
         foreach (array_values($values) as $index => $value) {
+            $edit = $editKey === null
+                ? ''
+                : $context->editAttr('columns', (string) ($columns[$index][$editKey] ?? ''), $index, key: $editKey, rich: true);
+
+            // Awalan (mis. "NIP. ") bukan bagian nilai schema: region editable
+            // dibungkus terpisah supaya awalan tidak ikut terbaca saat commit.
+            if ($edit !== '' && $prefix !== null && $value !== '') {
+                $value = sprintf('<span%s>%s</span>', $edit, $value);
+                $edit = '';
+            }
+
             $cells[] = [
                 'space' => false,
                 'html' => '<td class="db-signature__cell"{style}>'
-                    .($value === '' ? '' : sprintf(
-                        '<span class="%s"%s>%s%s</span>',
-                        $class,
-                        $editKey === null ? '' : $context->editAttr('columns', $index, key: $editKey, rich: true),
-                        $prefix ?? '',
-                        $value,
-                    ))
+                    .($value === '' ? '' : sprintf('<span class="%s"%s>%s%s</span>', $class, $edit, $prefix ?? '', $value))
                     .'</td>',
             ];
         }

@@ -92,6 +92,17 @@ body {
     outline-offset: 0.5mm;
 }
 
+/* Penanda sunting inline hanya dicetak renderer dalam konteks editable
+   (kanvas builder), jadi HTML cetak/PDF tidak pernah memuat atribut ini. */
+[data-edit-prop] {
+    cursor: text;
+}
+
+[data-editing="true"] {
+    outline: 0.5mm solid #059669;
+    outline-offset: 0.5mm;
+}
+
 .db-paragraph p {
     margin: 0;
 }
@@ -292,20 +303,9 @@ body {
     }
 
     .db-overflow,
-    .db-selected {
-        outline: none;
-    }
-
-    /* Penanda sunting inline hanya ada di HTML builder (konteks editable),
-       jadi aturan ini tidak pernah menyentuh cetak/PDF. */
-    [data-edit-prop] {
-        cursor: text;
-    }
-
+    .db-selected,
     [data-editing="true"] {
-        outline: 2px solid #059669;
-        outline-offset: 2px;
-        border-radius: 2px;
+        outline: none;
     }
 
     .db-no-print {

@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * label()/group()/valueLabel()/grouped() adalah metadata tampilan (dipakai
- * panel penyunting untuk label field, sektor accordion, dan opsi <select>)
+ * panel penyunting untuk label field, tab grup, dan opsi <select>)
  * yang sengaja dibuat di package ini, bukan di aplikasi konsumen — supaya
  * aplikasi lain yang memakai package ini tidak perlu mendefinisikan ulang,
  * cukup menyediakan tempat merender field-nya.

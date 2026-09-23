@@ -39,7 +39,7 @@ final class LetterMetaRenderer implements BlockRenderer
             '<td class="db-letter-meta__right" rowspan="%d" style="text-align:%s"%s>%s</td>',
             max(count($rows), 1),
             $context->escape((string) $block->prop('rightAlign')),
-            $context->editAttr('rightText', rich: true),
+            $context->editAttr('rightText', $rightText, rich: true),
             $context->rich($rightText),
         );
 
@@ -60,10 +60,10 @@ final class LetterMetaRenderer implements BlockRenderer
                 .'<td class="db-letter-meta__sep">%s</td>'
                 .'<td class="db-letter-meta__value"%s>%s</td>%s</tr>',
                 $labelWidth,
-                $context->editAttr('rows', $index, key: 'label', rich: true),
+                $context->editAttr('rows', (string) $row['label'], $index, key: 'label', rich: true),
                 $context->rich((string) $row['label']),
                 $separator,
-                $context->editAttr('rows', $index, key: 'value', rich: true),
+                $context->editAttr('rows', (string) $row['value'], $index, key: 'value', rich: true),
                 $context->rich((string) $row['value']),
                 $index === 0 ? $rightCell : '',
             );

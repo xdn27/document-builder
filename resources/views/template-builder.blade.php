@@ -7,6 +7,9 @@
                 const handle = initBuilder({
                     onSelect: (id) => emit('selectBlock', id),
                     onReorder: (zone, ids) => emit('moveBlock', zone, ids),
+                    // Satu nilai final per region saat blur; server menulis ke
+                    // schema lalu mengirim pratinjau baru seperti perubahan lain.
+                    onInlineEdit: (edit) => emit('applyInlineEdit', edit),
                     onRendered: (result) => {
                         const status = document.getElementById('db-page-status');
 

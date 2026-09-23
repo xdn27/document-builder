@@ -69,7 +69,7 @@ class TemplateBuilder extends Component
      */
     public array $imageUpload = [];
 
-    protected $listeners = ['selectBlock', 'moveBlock'];
+    protected $listeners = ['selectBlock', 'moveBlock', 'applyInlineEdit'];
 
     /**
      * Hanya terisi pada request pertama: dicetak langsung ke kanvas. Request
@@ -198,6 +198,82 @@ class TemplateBuilder extends Component
                 }
             }
         }
+    }
+
+    /**
+     * Commit sunting inline dari kanvas (builder.mjs → onInlineEdit). Alamat
+     * region datang dari atribut data-edit-* yang dicetak RenderContext::editAttr():
+     * prop bertipe string diisi langsung, rows lewat indeks baris + kunci, dan
+     * matrix lewat indeks baris + kolom. Alamat yang tidak cocok dengan schema
+     * diabaikan — isi template tidak pernah bertambah struktur dari sini.
+     *
+     * @param  array{blockId?:mixed,prop?:mixed,row?:mixed,col?:mixed,key?:mixed,value?:mixed}  $edit
+     */
+    public function applyInlineEdit(array $edit): void
+    {
+        $blockId = $edit['blockId'] ?? null;
+        $prop = $edit['prop'] ?? null;
+        $value = $edit['value'] ?? null;
+
+        if (! is_string($blockId) || ! is_string($prop) || ! is_string($value)) {
+            return;
+        }
+
+        foreach (self::ZONES as $zone) {
+            foreach ($this->schema['zones'][$zone]['blocks'] ?? [] as $index => $block) {
+                if (($block['id'] ?? null) !== $blockId) {
+                    continue;
+                }
+
+                $path = $this->inlineEditPath($block, $prop, $edit);
+
+                if ($path === null) {
+                    return;
+                }
+
+                data_set($this->schema, "zones.{$zone}.blocks.{$index}.props.{$path}", $value);
+                $this->selectBlock($blockId);
+                $this->schemaChanged();
+
+                return;
+            }
+        }
+    }
+
+    /** Jalur dot-notation di dalam props, atau null bila alamat tidak sah. */
+    private function inlineEditPath(array $block, string $prop, array $edit): ?string
+    {
+        $blockType = BlockType::tryFrom((string) ($block['type'] ?? ''));
+        $definition = $blockType ? BlockPropSchema::for($blockType)[$prop] ?? null : null;
+        $current = $block['props'][$prop] ?? null;
+        $row = $edit['row'] ?? null;
+
+        if ($definition === null) {
+            return null;
+        }
+
+        if ($definition['type'] === 'string') {
+            return $prop;
+        }
+
+        if (! is_int($row) || ! is_array($current) || ! is_array($current[$row] ?? null)) {
+            return null;
+        }
+
+        if ($definition['type'] === 'rows') {
+            $key = $edit['key'] ?? null;
+
+            // Hanya kunci bertipe teks (mis. bukan 'level' milik daftar).
+            return is_string($key) && is_string($definition['keys'][$key] ?? null) ? "{$prop}.{$row}.{$key}" : null;
+        }
+
+        if ($definition['type'] === 'matrix') {
+            $col = $edit['col'] ?? null;
+
+            return is_int($col) && array_key_exists($col, $current[$row]) ? "{$prop}.{$row}.{$col}" : null;
+        }
+
+        return null;
     }
 
     public function removeSelected(): void
@@ -386,7 +462,8 @@ class TemplateBuilder extends Component
     private function preview(): ?array
     {
         try {
-            $document = app(DocumentRenderer::class)->render(Template::fromArray($this->schema));
+            // Mode editable: region teks ditandai data-edit-* untuk sunting inline.
+            $document = app(DocumentRenderer::class)->render(Template::fromArray($this->schema), editable: true);
         } catch (SchemaValidationException $e) {
             // Kanvas ditahan pada keadaan sah terakhir; panel menampilkan galatnya.
             $this->schemaErrors = $e->errors();

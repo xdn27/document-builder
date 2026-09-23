@@ -77,6 +77,11 @@ final class RenderContext
         return new self($this->style, $this->page, $this->sanitizer, $this->variables, $this->images, $this->qr, $imageResolver, $this->editable);
     }
 
+    public function withEditable(bool $editable = true): self
+    {
+        return new self($this->style, $this->page, $this->sanitizer, $this->variables, $this->images, $this->qr, $this->imageResolver, $editable);
+    }
+
     /** Teks yang boleh mengandung <b> <i> <u> <br>. */
     public function rich(string $raw): string
     {
@@ -99,10 +104,15 @@ final class RenderContext
      * prop pemilik, indeks baris/kolom untuk struktur tabel/daftar, kunci untuk
      * properti bertipe rows, dan penanda rich (teks boleh mengandung <b><i><u><br>).
      * String kosong bila konteks tidak editable — HTML cetak/PDF tidak tersentuh.
+     *
+     * $raw adalah nilai schema region itu. Region yang memuat variabel sengaja
+     * tidak ditandai: kanvas menampilkan nilai contoh hasil resolver, sehingga
+     * commit inline akan menimpa token {{...}} dengan nilai contohnya. Region
+     * semacam itu tetap disunting lewat inspektor.
      */
-    public function editAttr(string $prop, ?int $row = null, ?int $col = null, ?string $key = null, bool $rich = false): string
+    public function editAttr(string $prop, string $raw, ?int $row = null, ?int $col = null, ?string $key = null, bool $rich = false): string
     {
-        if (! $this->editable) {
+        if (! $this->editable || preg_match(VariableSyntax::PATTERN, $raw) === 1) {
             return '';
         }
 
