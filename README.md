@@ -119,13 +119,18 @@ penerimanya lebih dari satu.
 ## Font (`FontRegistry`)
 
 Font dipilih per-dokumen lewat `style.fontFamily`, bukan per-blok. Tiga yang pertama metriknya
-identik dengan font inti mpdf, jadi berjalan di kedua engine tanpa berkas tambahan:
+identik dengan Times New Roman, Arial, dan Courier New. Browser memakai font mana pun di stack CSS
+yang terpasang (semuanya bermetrik sama); mpdf memakai berkas Liberation yang disertakan di
+`resources/fonts/liberation/` (SIL OFL), karena dalam mode utf-8 mpdf tidak memakai font inti PDF
+dan diam-diam jatuh ke DejaVu yang 16% lebih lebar — baris yang pas di layar lalu terlipat di PDF.
+`resolvedCss()` menaruh keluarga mpdf paling depan di `font-family`, sebab mpdf hanya membaca nama
+pertama.
 
 | Key | Tampilan | Dukungan mpdf |
 |---|---|---|
-| `tinos` (bawaan) | mirip Times New Roman | ya (`times`) |
-| `arimo` | mirip Arial | ya (`helvetica`) |
-| `cousine` | mirip Courier New | ya (`courier`) |
+| `tinos` (bawaan) | mirip Times New Roman | ya (`liberationserif`) |
+| `arimo` | mirip Arial | ya (`liberationsans`) |
+| `cousine` | mirip Courier New | ya (`liberationmono`) |
 | `almarai` | Arab & Latin (Google Fonts, berkas disertakan di `resources/fonts/almarai/`) | **tidak** — lihat di bawah |
 
 `FontRegistry::supportsMpdf()` menandai `almarai` sebagai tidak didukung mpdf: **terverifikasi**

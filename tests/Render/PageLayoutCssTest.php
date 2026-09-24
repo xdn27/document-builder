@@ -3,12 +3,15 @@
 namespace Maqiis\DocumentBuilder\Tests\Render;
 
 use Maqiis\DocumentBuilder\Font\FontRegistry;
+use Maqiis\DocumentBuilder\Render\HtmlRenderer;
 use Maqiis\DocumentBuilder\Render\PageLayoutCss;
+use Maqiis\DocumentBuilder\Render\RenderContext;
 use Maqiis\DocumentBuilder\Schema\DocumentStyle;
 use Maqiis\DocumentBuilder\Schema\Margin;
 use Maqiis\DocumentBuilder\Schema\Orientation;
 use Maqiis\DocumentBuilder\Schema\PageSetup;
 use Maqiis\DocumentBuilder\Schema\PageSize;
+use Maqiis\DocumentBuilder\Schema\SchemaValidator;
 use PHPUnit\Framework\TestCase;
 
 class PageLayoutCssTest extends TestCase
@@ -76,11 +79,13 @@ class PageLayoutCssTest extends TestCase
         $this->assertSame(FontRegistry::cssStack('tinos'), FontRegistry::cssStack('font-yang-tidak-ada'));
     }
 
-    public function test_maps_font_keys_to_mpdf_core_families(): void
+    public function test_maps_font_keys_to_bundled_metric_compatible_mpdf_families(): void
     {
-        $this->assertSame('times', FontRegistry::mpdfFamily('tinos'));
-        $this->assertSame('helvetica', FontRegistry::mpdfFamily('arimo'));
-        $this->assertSame('courier', FontRegistry::mpdfFamily('cousine'));
+        // Bukan font inti mpdf (times/helvetica/courier): dalam mode utf-8 mpdf
+        // tidak memakainya dan jatuh ke DejaVu yang lebih lebar.
+        $this->assertSame('liberationserif', FontRegistry::mpdfFamily('tinos'));
+        $this->assertSame('liberationsans', FontRegistry::mpdfFamily('arimo'));
+        $this->assertSame('liberationmono', FontRegistry::mpdfFamily('cousine'));
     }
 
     public function test_almarai_is_supported_by_mpdf_via_custom_font_registration(): void
@@ -103,9 +108,32 @@ class PageLayoutCssTest extends TestCase
         $this->assertSame(0xFF, $files['files']['useOTL']);
     }
 
-    public function test_mpdf_font_files_is_null_for_fonts_that_need_no_custom_registration(): void
+    public function test_every_font_registers_existing_files_for_all_four_faces(): void
     {
-        $this->assertNull(FontRegistry::mpdfFontFiles('tinos'));
+        foreach (['tinos', 'arimo', 'cousine'] as $key) {
+            $font = FontRegistry::mpdfFontFiles($key);
+
+            $this->assertSame(['R', 'B', 'I', 'BI'], array_keys($font['files']), $key);
+
+            foreach ($font['files'] as $file) {
+                $this->assertFileExists($font['dir'].'/'.$file);
+            }
+        }
+    }
+
+    public function test_resolved_css_puts_the_mpdf_family_first(): void
+    {
+        $document = (new HtmlRenderer)->render(
+            SchemaValidator::validate([
+                'version' => 1, 'page' => [], 'style' => ['fontFamily' => 'tinos'],
+                'zones' => ['header' => ['blocks' => []], 'body' => ['blocks' => []], 'footer' => ['blocks' => []]],
+            ]),
+            RenderContext::sample(),
+        );
+
+        // mpdf hanya membaca nama pertama; stack browser (css()) tidak disentuh.
+        $this->assertStringContainsString("font-family:'liberationserif','Tinos'", $document->resolvedCss());
+        $this->assertStringNotContainsString('liberationserif', $document->css());
     }
 
     public function test_almarai_embeds_its_font_face_block_only_when_selected(): void

@@ -3,6 +3,7 @@
 namespace Maqiis\DocumentBuilder\Render;
 
 use Maqiis\DocumentBuilder\Asset\AssetLoader;
+use Maqiis\DocumentBuilder\Font\FontRegistry;
 use Maqiis\DocumentBuilder\Schema\DocumentStyle;
 use Maqiis\DocumentBuilder\Schema\PageSetup;
 use Maqiis\DocumentBuilder\Schema\ZoneRepeat;
@@ -109,6 +110,14 @@ final class RenderedDocument
     public function resolvedCss(): string
     {
         $variables = PageLayoutCss::variables($this->pageSetup, $this->style);
+
+        // mpdf hanya membaca nama pertama di font-family; nama yang tidak ia kenal
+        // (Tinos, Times New Roman, …) membuatnya jatuh ke DejaVu, bukan mencoba nama
+        // berikutnya. Keluarga yang didaftarkan MpdfEngine ditaruh paling depan.
+        if (FontRegistry::supportsMpdf($this->style->fontFamily)) {
+            $variables['--db-font-family'] = "'".FontRegistry::mpdfFamily($this->style->fontFamily)."',"
+                .$variables['--db-font-family'];
+        }
 
         $css = preg_replace_callback(
             '/var\((--db-[a-z-]+)\)/',

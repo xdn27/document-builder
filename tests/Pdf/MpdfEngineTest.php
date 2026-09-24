@@ -9,6 +9,7 @@ use Maqiis\DocumentBuilder\Render\RenderContext;
 use Maqiis\DocumentBuilder\Render\RenderedDocument;
 use Maqiis\DocumentBuilder\Schema\BlockType;
 use Maqiis\DocumentBuilder\Schema\SchemaValidator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 
@@ -38,6 +39,42 @@ class MpdfEngineTest extends TestCase
 
         $this->assertStringStartsWith('%PDF-', $pdf);
         $this->assertStringContainsString('Almarai-Regular', $pdf);
+    }
+
+    /**
+     * Dalam mode utf-8 mpdf tidak memakai font inti PDF: "times" diterjemahkan ke
+     * "timesnewroman" yang tidak disertakan mpdf, lalu jatuh diam-diam ke DejaVu —
+     * 16% lebih lebar dari Times, sehingga baris yang pas di browser terlipat di PDF.
+     *
+     * @return array<string, array{string, string}>
+     */
+    public static function metricCompatibleFonts(): array
+    {
+        return [
+            'tinos' => ['tinos', 'LiberationSerif'],
+            'arimo' => ['arimo', 'LiberationSans'],
+            'cousine' => ['cousine', 'LiberationMono'],
+        ];
+    }
+
+    #[DataProvider('metricCompatibleFonts')]
+    public function test_embeds_a_metric_compatible_font_instead_of_dejavu(string $key, string $embedded): void
+    {
+        $document = $this->documentFromFixture('surat-satu-halaman.json', ['style' => ['fontFamily' => $key]]);
+
+        $pdf = (new MpdfEngine)->render($document);
+
+        $this->assertStringContainsString($embedded, $pdf);
+        $this->assertStringNotContainsString('DejaVu', $pdf);
+    }
+
+    public function test_bold_text_uses_the_bold_face_of_the_same_family(): void
+    {
+        // Nama di blok tanda tangan (tebal) yang memicu laporan ini: lipatannya
+        // berasal dari DejaVuSerifCondensed-Bold.
+        $pdf = (new MpdfEngine)->render($this->documentFromFixture('surat-satu-halaman.json'));
+
+        $this->assertStringContainsString('LiberationSerif-Bold', $pdf);
     }
 
     public function test_produces_pdf_bytes(): void

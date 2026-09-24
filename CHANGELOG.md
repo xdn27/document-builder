@@ -3,6 +3,16 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [Unreleased]
+
+### Diperbaiki
+- PDF mpdf kini memakai font bermetrik sama dengan layar. Sebelumnya `tinos`/`arimo`/`cousine`
+  dipetakan ke font inti `times`/`helvetica`/`courier`, yang tidak dipakai mpdf dalam mode utf-8,
+  sehingga seluruh teks jatuh ke DejaVu (±16% lebih lebar): baris yang pas di browser terlipat di
+  PDF, mis. nama di blok tanda tangan. Berkas Liberation Serif/Sans/Mono (SIL OFL, metrik identik
+  Times/Arial/Courier) kini disertakan dan didaftarkan lewat `fontdata`, dan `resolvedCss()`
+  menaruh keluarga mpdf paling depan karena mpdf hanya membaca nama pertama di `font-family`.
+
 ## [1.4.0] — 2026-09-24
 
 ### Ditambahkan

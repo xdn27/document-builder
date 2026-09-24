@@ -8,9 +8,13 @@ use Maqiis\DocumentBuilder\Asset\AssetLoader;
 /**
  * Tiga font pertama metriknya identik dengan Times New Roman, Arial, dan
  * Courier New — kesamaan metrik itu yang membuat perhitungan baris di browser
- * dan di mpdf tetap cocok tanpa perlu menyertakan berkas font ke repositori.
- * Untuk ketiganya, 'mpdf' berisi nama font bawaan mpdf yang dipakai langsung
- * sebagai default_font.
+ * dan di mpdf cocok. Browser memakai font mana pun di stack CSS yang terpasang
+ * (semuanya bermetrik sama). mpdf TIDAK bisa diandalkan begitu: dalam mode
+ * utf-8 ia tidak memakai font inti PDF, "times" diterjemahkan ke
+ * "timesnewroman" yang tidak disertakan mpdf, lalu jatuh diam-diam ke DejaVu —
+ * 16% lebih lebar, sehingga baris yang pas di layar terlipat di PDF. Karena
+ * itu berkas Liberation (metrik identik, SIL OFL) disertakan di
+ * resources/fonts/liberation dan didaftarkan lewat mpdfFontFiles().
  *
  * Almarai berbeda: font Arab+Latin sungguhan yang berkasnya disisipkan ke
  * browser/Gotenberg lewat AssetLoader::fontFace() (lihat fontFaceCss(), yang
@@ -34,17 +38,17 @@ final class FontRegistry
             'tinos' => [
                 'label' => 'Tinos (metrik Times New Roman)',
                 'css' => "'Tinos','Times New Roman','Liberation Serif',Times,serif",
-                'mpdf' => 'times',
+                'mpdf' => 'liberationserif',
             ],
             'arimo' => [
                 'label' => 'Arimo (metrik Arial)',
                 'css' => "'Arimo',Arial,'Liberation Sans',Helvetica,sans-serif",
-                'mpdf' => 'helvetica',
+                'mpdf' => 'liberationsans',
             ],
             'cousine' => [
                 'label' => 'Cousine (metrik Courier New)',
                 'css' => "'Cousine','Courier New','Liberation Mono',Courier,monospace",
-                'mpdf' => 'courier',
+                'mpdf' => 'liberationmono',
             ],
             'almarai' => [
                 'label' => 'Almarai (Arab & Latin)',
@@ -103,14 +107,18 @@ final class FontRegistry
 
     /**
      * Data registrasi berkas TTF untuk font yang perlu didaftarkan manual ke
-     * mpdf lewat opsi konstruktor 'fontDir'/'fontdata' — null untuk font yang
-     * sudah tersedia sebagai font bawaan mpdf (lihat docblock kelas ini).
+     * mpdf lewat opsi konstruktor 'fontDir'/'fontdata'. Setiap font di
+     * registry punya berkasnya sendiri: font bawaan mpdf tidak ada yang
+     * bermetrik sama dengan stack CSS-nya (lihat docblock kelas ini).
      *
      * @return array{dir:string,files:array<string,string|int>}|null
      */
     public static function mpdfFontFiles(string $key): ?array
     {
         return match ($key) {
+            'tinos' => self::liberation('Serif'),
+            'arimo' => self::liberation('Sans'),
+            'cousine' => self::liberation('Mono'),
             'almarai' => [
                 'dir' => dirname(AssetLoader::path('fonts/almarai/Almarai-Regular.ttf')),
                 'files' => [
@@ -128,5 +136,19 @@ final class FontRegistry
             ],
             default => null,
         };
+    }
+
+    /** @return array{dir:string,files:array<string,string>} */
+    private static function liberation(string $style): array
+    {
+        return [
+            'dir' => dirname(AssetLoader::path('fonts/liberation/LiberationSerif-Regular.ttf')),
+            'files' => [
+                'R' => "Liberation{$style}-Regular.ttf",
+                'B' => "Liberation{$style}-Bold.ttf",
+                'I' => "Liberation{$style}-Italic.ttf",
+                'BI' => "Liberation{$style}-BoldItalic.ttf",
+            ],
+        ];
     }
 }
