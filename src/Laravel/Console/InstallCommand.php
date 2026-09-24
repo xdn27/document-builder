@@ -18,11 +18,11 @@ final class InstallCommand extends Command
         {--views : Salin juga Blade builder ke resources/views/vendor supaya bisa diubah}
         {--force : Timpa berkas yang sudah ada}';
 
-    protected $description = 'Pasang document-builder: publish config & migration, tampilkan langkah manual, lalu jalankan doctor';
+    protected $description = 'Pasang document-builder: publish config, tampilkan langkah manual, lalu jalankan doctor';
 
     /** Langkah yang bergantung konvensi aplikasi, jadi harus ditulis manusia. */
     private const CHECKLIST = [
-        'Model template: `implements TemplateRecord` + `use IsTemplateRecord`, lalu tulis authorizeTemplateView() sendiri — trait sengaja tidak menyediakannya.',
+        'Penyimpanan template: tabel/model milik Anda sendiri (package tidak mempublish migration maupun model). Cukup `implements TemplateRecord` — untuk Eloquent tambahkan `use IsTemplateRecord` — lalu tulis authorizeTemplateView() sendiri; trait sengaja tidak menyediakannya.',
         'Katalog variabel: bind Maqiis\DocumentBuilder\Variable\VariableRegistry (scoped) di service provider aplikasi.',
         "Route + view pembungkus yang memasang @livewire('document-builder::template-builder', ['template' => \$template]). Layout-nya WAJIB punya @stack('script') setelah @livewireScripts — tanpa itu kanvas tidak pernah hidup.",
         'Isi document-builder.livewire.* di config (index_route, print_route, print_ability, update_ability) dan pastikan ability update ada di sistem permission Anda.',
@@ -33,7 +33,6 @@ final class InstallCommand extends Command
         $this->info('Memasang document-builder');
 
         $this->publish('document-builder-config');
-        $this->publish('document-builder-migrations');
 
         if ($this->option('views')) {
             $this->publish('document-builder-views');

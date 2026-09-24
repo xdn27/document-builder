@@ -138,9 +138,12 @@ class DocumentBuilderServiceProvider extends ServiceProvider
                 $package.'/resources/views' => resource_path('views/vendor/document-builder'),
             ], ['document-builder-views', 'document-builder']);
 
-            $this->publishes([
-                $package.'/database/migrations/create_document_templates_table.php.stub' => $this->migrationTarget(),
-            ], ['document-builder-migrations', 'document-builder']);
+            /*
+            | Sengaja TIDAK ada migration maupun model yang dipublish. Tabel dan
+            | model template milik aplikasi — nama, kolom, scoping cabang/tenant
+            | ditentukan konsumen; package hanya bicara lewat kontrak
+            | Concerns\TemplateRecord.
+            */
 
             $this->commands([
                 Console\InstallCommand::class,
@@ -157,17 +160,5 @@ class DocumentBuilderServiceProvider extends ServiceProvider
         if (class_exists(\Livewire\Livewire::class)) {
             \Livewire\Livewire::component('document-builder::template-builder', Livewire\TemplateBuilder::class);
         }
-    }
-
-    /**
-     * Publish ulang — atau install yang dijalankan dua kali — tidak boleh
-     * menghasilkan migration kembar bertimestamp baru: dua Schema::create atas
-     * tabel yang sama meledak saat migrate. Bila sudah ada, tujuannya berkas itu.
-     */
-    private function migrationTarget(): string
-    {
-        $existing = glob(database_path('migrations/*_create_document_templates_table.php')) ?: [];
-
-        return $existing[0] ?? database_path('migrations/'.date('Y_m_d_His').'_create_document_templates_table.php');
     }
 }

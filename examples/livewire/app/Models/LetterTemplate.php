@@ -10,7 +10,10 @@ class LetterTemplate extends Model implements TemplateRecord
 {
     use IsTemplateRecord;
 
-    protected $table = 'document_templates';
+    // Tabel milik aplikasi — package tidak mempublish migration. Minimal butuh
+    // kolom JSON "schema" dan string "name" (atau override $templateSchemaColumn
+    // / $templateNameColumn).
+    protected $table = 'letter_templates';
 
     protected $guarded = ['id'];
 

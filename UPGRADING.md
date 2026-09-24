@@ -1,5 +1,11 @@
 # Upgrading
 
+## Ke rilis berikutnya (tanpa migration bawaan)
+
+Tidak ada yang wajib diubah. Migration `document_templates` yang dulu dipublish tetap milik aplikasi
+Anda. Skrip deploy yang menjalankan `vendor:publish --tag=document-builder-migrations` harus
+membuang tag itu — tag tersebut sudah tidak ada.
+
 ## Dari pemakaian di dalam repo (pra-1.0) ke 1.0
 
 Ketujuh langkah sudah ditempuh akademik-maqiis. Ulangi semuanya di aplikasi lain yang masih memakai

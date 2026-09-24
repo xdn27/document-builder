@@ -46,20 +46,23 @@ Service provider terdaftar otomatis (auto-discovery).
 
 ```bash
 php artisan document-builder:install
-php artisan migrate
 ```
 
-Installer mem-publish `config/document-builder.php` dan migration `document_templates` (kolom `name`
-dan `schema`; tambahkan kolom milik Anda sebelum `migrate`), mencetak empat langkah manual di bawah,
-lalu menjalankan `document-builder:doctor`. Menjalankannya ulang aman: berkas yang sudah ada dilewati
+Installer mem-publish `config/document-builder.php`, mencetak empat langkah manual di bawah, lalu
+menjalankan `document-builder:doctor`. Package **tidak** mempublish migration maupun model: tabel,
+nama kolom, dan scoping cabang/tenant sepenuhnya keputusan aplikasi Anda. Package hanya mengenal
+kontrak `TemplateRecord`. Menjalankannya ulang aman: berkas yang sudah ada dilewati
 kecuali dengan `--force`.
 
 **3. Empat langkah yang Anda tulis sendiri** — salinan siap pakai ada di
 `examples/livewire/`:
 
-1. **Model** — `implements TemplateRecord` + `use IsTemplateRecord`, dan tulis
-   `authorizeTemplateView()` sendiri (trait sengaja tidak menyediakannya: aturan akses lihat adalah
-   keputusan aplikasi).
+1. **Model** — model apa pun milik Anda, di tabel apa pun, cukup `implements TemplateRecord`.
+   Untuk Eloquent, `use IsTemplateRecord` menyediakan implementasinya: kolom schema (JSON, cast
+   `array`) dan nama dibaca dari `schema` dan `name`, bisa diganti lewat property
+   `$templateSchemaColumn` / `$templateNameColumn`. Tulis `authorizeTemplateView()` sendiri (trait
+   sengaja tidak menyediakannya: aturan akses lihat adalah keputusan aplikasi). Uji implementasinya
+   dengan `Maqiis\DocumentBuilder\Testing\TemplateRecordContractTests`.
 2. **Katalog variabel** — bind `Maqiis\DocumentBuilder\Variable\VariableRegistry` secara `scoped` di
    service provider.
 3. **Route + view pembungkus** yang memasang

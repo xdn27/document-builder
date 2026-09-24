@@ -3,6 +3,14 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [Unreleased]
+
+### Dihapus
+- Stub migration `create_document_templates_table` beserta tag publish `document-builder-migrations`;
+  `document-builder:install` tidak lagi mempublish migration. Tabel dan model template sepenuhnya
+  milik aplikasi — package hanya mengenal kontrak `TemplateRecord`. Migration yang sudah
+  dipublish di aplikasi Anda tidak tersentuh.
+
 ## [1.1.1] — 2026-09-24
 
 ### Diperbaiki

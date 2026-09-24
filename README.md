@@ -45,7 +45,7 @@ Paket ini privat (tidak ada di Packagist) — daftarkan dulu repository `vcs`-ny
 
 ```bash
 composer require maqiis/document-builder:^1.0 mpdf/mpdf
-php artisan document-builder:install     # publish config & migration, checklist, lalu doctor
+php artisan document-builder:install     # publish config, checklist, lalu doctor
 php artisan document-builder:doctor      # kapan pun: engine PDF, font, gambar, variabel, render
 ```
 
