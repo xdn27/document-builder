@@ -3,7 +3,7 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
-## [Unreleased]
+## [1.3.0] — 2026-09-24
 
 ### Ditambahkan
 - Variabel bawaan `Variable\BuiltinVariables`: `today.long`, `today.short`, `today.full`,
