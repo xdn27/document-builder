@@ -1,6 +1,6 @@
 # Upgrading
 
-## Ke rilis berikutnya (tanpa migration bawaan)
+## Dari 1.1 ke 1.2 (tanpa migration bawaan)
 
 Tidak ada yang wajib diubah. Migration `document_templates` yang dulu dipublish tetap milik aplikasi
 Anda. Skrip deploy yang menjalankan `vendor:publish --tag=document-builder-migrations` harus

@@ -3,7 +3,7 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
-## [Unreleased]
+## [1.2.0] — 2026-09-24
 
 ### Dihapus
 - Stub migration `create_document_templates_table` beserta tag publish `document-builder-migrations`;
