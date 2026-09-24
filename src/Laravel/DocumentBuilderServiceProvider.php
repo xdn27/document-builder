@@ -14,6 +14,7 @@ use Maqiis\DocumentBuilder\Pdf\PdfEngine;
 use Maqiis\DocumentBuilder\Qr\QrCodeGenerator;
 use Maqiis\DocumentBuilder\Schema\LabelTranslator;
 use Maqiis\DocumentBuilder\Schema\PropCatalog;
+use Maqiis\DocumentBuilder\Variable\BuiltinVariables;
 use Maqiis\DocumentBuilder\Variable\VariableRegistry;
 
 class DocumentBuilderServiceProvider extends ServiceProvider
@@ -98,6 +99,19 @@ class DocumentBuilderServiceProvider extends ServiceProvider
         $this->app->scoped(VariableRegistry::class, fn (): VariableRegistry => new VariableRegistry);
 
         /*
+        | Variabel bawaan (tanggal hari ini, nomor halaman) lewat extend(), bukan
+        | lewat binding di atas: extender tetap berlaku saat aplikasi mem-bind
+        | ulang VariableRegistry dengan katalognya sendiri, dan register() hanya
+        | mengisi path yang belum didefinisikan katalog itu. Scoped supaya
+        | "hari ini" dihitung ulang per request/job, dengan zona waktu aplikasi.
+        */
+        $this->app->scoped(BuiltinVariables::class, fn (): BuiltinVariables => new BuiltinVariables(now()));
+
+        $this->app->extend(VariableRegistry::class, fn (VariableRegistry $registry, $app): VariableRegistry => $this->builtinVariablesEnabled()
+            ? $app->make(BuiltinVariables::class)->register($registry)
+            : $registry);
+
+        /*
         | Label dibaca lewat penerjemah Laravel (namespace "document-builder",
         | grup "labels"). Tanpa berkas terjemahan, TransLabelTranslator
         | mengembalikan teks Indonesia bawaan — tidak ada teks yang berubah.
@@ -117,7 +131,13 @@ class DocumentBuilderServiceProvider extends ServiceProvider
             $app->make(ImageSourcePolicy::class),
             $app->make(QrCodeGenerator::class),
             $app->make(ImageResolver::class),
+            $this->builtinVariablesEnabled() ? $app->make(BuiltinVariables::class) : null,
         ));
+    }
+
+    private function builtinVariablesEnabled(): bool
+    {
+        return (bool) $this->app['config']->get('document-builder.variables.builtin', true);
     }
 
     public function boot(): void

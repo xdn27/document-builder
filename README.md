@@ -69,6 +69,28 @@ php artisan document-builder:doctor      # kapan pun: engine PDF, font, gambar, 
 Kop dan kaki dapat tampil di `all`, `first-only`, atau `except-first`. Teks boleh memuat variabel
 seperti `{{ student.name }}`; `{{ page }}` dan `{{ pages }}` diisi saat paginasi.
 
+### Variabel bawaan
+
+Tersedia di setiap aplikasi tanpa didaftarkan, dan tampil di panel variabel builder:
+
+| Path | Contoh (Kamis, 24 September 2026) |
+|---|---|
+| `today.long` | 24 September 2026 |
+| `today.short` | 24/09/2026 |
+| `today.full` | Kamis, 24 September 2026 |
+| `today.day` | Kamis |
+| `today.date` | 24 |
+| `today.month` | September |
+| `today.month_roman` | IX (untuk nomor surat, mis. `001/SK/{{ today.month_roman }}/{{ today.year }}`) |
+| `today.year` | 2026 |
+| `page`, `pages` | nomor halaman dan jumlah halaman |
+
+Tanggal dihitung saat render dengan zona waktu aplikasi, termasuk saat mencetak dengan resolver
+data milik aplikasi. Katalog atau resolver aplikasi yang mengisi path yang sama selalu menang.
+Matikan dengan `document-builder.variables.builtin = false`. Tanpa Laravel, bungkus resolver Anda
+sendiri: `(new BuiltinVariables(new DateTimeImmutable))->resolver($resolver)`, dan panggil
+`->register($registry)` untuk panelnya.
+
 ### Blok penerima & koleksi
 
 Blok `recipient` merender satu entri per butir koleksi `recipients`. Di dalam `itemText`,

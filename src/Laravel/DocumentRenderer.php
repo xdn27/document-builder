@@ -10,6 +10,7 @@ use Maqiis\DocumentBuilder\Render\RenderContext;
 use Maqiis\DocumentBuilder\Render\RenderedDocument;
 use Maqiis\DocumentBuilder\Sanitize\HtmlSanitizer;
 use Maqiis\DocumentBuilder\Schema\Template;
+use Maqiis\DocumentBuilder\Variable\BuiltinVariables;
 use Maqiis\DocumentBuilder\Variable\VariableRegistry;
 use Maqiis\DocumentBuilder\Variable\VariableResolver;
 use Maqiis\DocumentBuilder\Variable\VariableSyntax;
@@ -23,6 +24,10 @@ use Maqiis\DocumentBuilder\Variable\VariableSyntax;
  * datang dari container, bukan dari kelas katalog milik satu aplikasi. Tiap
  * aplikasi mem-bind katalognya sendiri (spec §8.2); yang tidak mem-bind apa pun
  * mendapat registry kosong dari provider, bukan galat.
+ *
+ * BuiltinVariables membungkus resolver apa pun yang dipakai — contoh maupun
+ * data cetak — supaya `{{ today.long }}` dan kawan-kawan terisi juga saat
+ * mencetak, bukan hanya di kanvas. Nilai dari resolver aplikasi tetap menang.
  */
 final class DocumentRenderer
 {
@@ -31,15 +36,22 @@ final class DocumentRenderer
         private readonly ImageSourcePolicy $images,
         private readonly QrCodeGenerator $qr,
         private readonly ImageResolver $imageResolver,
+        private readonly ?BuiltinVariables $builtins = null,
     ) {}
 
     public function render(Template $template, ?VariableResolver $resolver = null, bool $editable = false): RenderedDocument
     {
+        $resolver ??= $this->variables->sampleResolver();
+
+        if ($this->builtins !== null) {
+            $resolver = $this->builtins->resolver($resolver);
+        }
+
         $context = new RenderContext(
             $template->style,
             $template->page,
             new HtmlSanitizer,
-            new VariableSyntax($resolver ?? $this->variables->sampleResolver()),
+            new VariableSyntax($resolver),
             $this->images,
             $this->qr,
             $this->imageResolver,

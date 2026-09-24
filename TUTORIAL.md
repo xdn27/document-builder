@@ -250,8 +250,10 @@ Ketik token seperti `{{ student.name }}` di dalam teks blok apa pun yang menerim
 kop surat, meta surat, dll.) — panel **Variabel** di kanan bawah inspektor mencantumkan semua
 token yang tersedia beserta label dan contoh nilainya, tinggal disalin. Contoh yang sudah
 terdaftar di project ini: `institution.name`, `student.name`, `employee.position`,
-`letter.number`, `today.long`. Di zona kaki, tersedia tambahan `{{ page }}` dan `{{ pages }}`
-untuk nomor halaman — diisi otomatis saat paginasi, bukan saat disunting.
+`letter.number`. Grup **Tanggal** dan **Halaman** adalah variabel bawaan package (`today.long`,
+`today.full`, `today.month_roman`, `today.year`, dst. — daftar lengkap di README, "Variabel
+bawaan"), tersedia tanpa didaftarkan. `{{ page }}` dan `{{ pages }}` untuk nomor halaman diisi
+otomatis saat paginasi, bukan saat disunting.
 
 #### Mengunggah gambar
 

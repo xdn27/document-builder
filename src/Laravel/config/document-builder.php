@@ -30,6 +30,18 @@ return [
         ],
     ],
 
+    'variables' => [
+        /*
+        | Variabel bawaan yang selalu tersedia tanpa didaftarkan: tanggal hari
+        | ini (today.long, today.short, today.full, today.day, today.date,
+        | today.month, today.month_roman, today.year) dan nomor halaman (page,
+        | pages). Katalog aplikasi yang mendefinisikan path yang sama tetap
+        | menang. false menyembunyikannya dari panel dan berhenti mengisinya
+        | saat render.
+        */
+        'builtin' => true,
+    ],
+
     'images' => [
         /*
         | Awalan sumber gambar yang diizinkan, di luar disk publik aplikasi yang

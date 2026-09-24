@@ -6,6 +6,7 @@ use Illuminate\Contracts\Foundation\Application;
 use Maqiis\DocumentBuilder\Font\FontRegistry;
 use Maqiis\DocumentBuilder\Laravel\DocumentRenderer;
 use Maqiis\DocumentBuilder\Schema\Template;
+use Maqiis\DocumentBuilder\Variable\BuiltinVariables;
 use Maqiis\DocumentBuilder\Variable\VariableRegistry;
 use Mpdf\Mpdf;
 use Throwable;
@@ -162,13 +163,17 @@ final class Doctor
 
     private function variables(): DoctorCheck
     {
-        $groups = $this->app->make(VariableRegistry::class)->groups();
+        $paths = array_column($this->app->make(VariableRegistry::class)->all(), 'path');
+        $own = array_diff($paths, BuiltinVariables::paths());
+        $builtin = count($paths) - count($own);
 
-        if ($groups === []) {
-            return DoctorCheck::warn('variables', 'VariableRegistry kosong: panel variabel builder kosong dan token {{ … }} tidak tersubstitusi. Bind katalog aplikasi di service provider.');
+        // Variabel bawaan selalu ada, jadi registry yang tidak kosong belum berarti
+        // katalog aplikasi sudah di-bind — yang dihitung hanya path milik aplikasi.
+        if ($own === []) {
+            return DoctorCheck::warn('variables', 'Katalog variabel aplikasi belum di-bind: panel hanya berisi variabel bawaan dan token lain tidak tersubstitusi. Bind VariableRegistry di service provider.');
         }
 
-        return DoctorCheck::ok('variables', array_sum(array_map('count', $groups)).' variabel dalam '.count($groups).' grup');
+        return DoctorCheck::ok('variables', sprintf('%d variabel aplikasi, %d variabel bawaan', count($own), $builtin));
     }
 
     private function render(): DoctorCheck

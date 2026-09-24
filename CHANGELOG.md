@@ -3,6 +3,23 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [Unreleased]
+
+### Ditambahkan
+- Variabel bawaan `Variable\BuiltinVariables`: `today.long`, `today.short`, `today.full`,
+  `today.day`, `today.date`, `today.month`, `today.month_roman`, `today.year` (nama hari/bulan
+  berbahasa Indonesia), plus `page`/`pages` di panel. Di Laravel otomatis masuk panel builder
+  (lewat `extend()`, jadi tetap ada meski aplikasi mem-bind ulang `VariableRegistry`) dan diisi
+  `DocumentRenderer` juga saat mencetak dengan resolver aplikasi. Definisi dan nilai aplikasi
+  untuk path yang sama selalu menang. Dimatikan dengan config `variables.builtin = false`.
+- `DocumentRenderer` menerima argumen konstruktor opsional `?BuiltinVariables` (kelima).
+
+### Diubah
+- `document-builder:doctor` menghitung variabel aplikasi terpisah dari variabel bawaan, dan tetap
+  memperingatkan bila katalog aplikasi belum di-bind.
+- Bila Anda mem-publish config, tambahkan blok `variables` dari config paket (opsional; tanpa
+  itu variabel bawaan tetap aktif).
+
 ## [1.2.1] — 2026-09-24
 
 ### Diperbaiki
