@@ -3,6 +3,12 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [1.1.1] — 2026-09-24
+
+### Diperbaiki
+- Paket kini bisa dipasang di Laravel 13: constraint `illuminate/*` (dan `laravel/framework` di
+  require-dev) diperluas ke `^13.0`. Diuji dengan Laravel 13.33 + Livewire 3.8.
+
 ## [1.1.0] — 2026-09-24
 
 ### Ditambahkan

@@ -11,14 +11,14 @@
         "ext-curl": "*",
         "ext-dom": "*",
         "ext-mbstring": "*",
-        "illuminate/console": "^10.0|^11.0|^12.0",
-        "illuminate/contracts": "^10.0|^11.0|^12.0",
-        "illuminate/http": "^10.0|^11.0|^12.0",
-        "illuminate/support": "^10.0|^11.0|^12.0"
+        "illuminate/console": "^10.0|^11.0|^12.0|^13.0",
+        "illuminate/contracts": "^10.0|^11.0|^12.0|^13.0",
+        "illuminate/http": "^10.0|^11.0|^12.0|^13.0",
+        "illuminate/support": "^10.0|^11.0|^12.0|^13.0"
     },
     "require-dev": {
         "ext-gd": "*",
-        "laravel/framework": "^10.0|^11.0|^12.0",
+        "laravel/framework": "^10.0|^11.0|^12.0|^13.0",
         "livewire/livewire": "^2.12|^3.0",
         "mpdf/mpdf": "^8.3",
         "phpunit/phpunit": "^10.0"
