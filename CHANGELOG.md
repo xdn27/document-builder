@@ -3,6 +3,16 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [Unreleased]
+
+### Diperbaiki
+- Inspector dan panel pengaturan halaman kini merender ulang kanvas saat nilainya diubah di
+  Livewire 3 dan 4. Sejak Livewire 3, `wire:model` tanpa `.live` bersifat deferred sehingga
+  `updated()` (pemicu pratinjau) tidak pernah terpanggil sampai ada aksi lain. Semua binding
+  `schema.*` kini memakai `wire:model.live` / `wire:model.live.debounce.500ms`; Livewire 2
+  mengabaikan `.live`, jadi perilakunya di sana tidak berubah.
+- Bila Anda mem-publish view builder, tambahkan `.live` yang sama di salinan Anda.
+
 ## [1.2.0] — 2026-09-24
 
 ### Dihapus

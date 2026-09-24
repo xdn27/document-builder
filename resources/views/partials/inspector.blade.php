@@ -78,7 +78,7 @@
                                     @if ($definition['type'] === 'bool')
                                         <div class="form-check pt-1">
                                             <input id="prop-{{ $key }}" type="checkbox" class="form-check-input"
-                                                wire:model="{{ $path }}.{{ $key }}">
+                                                wire:model.live="{{ $path }}.{{ $key }}">
                                             <label class="form-check-label" for="prop-{{ $key }}">{{ $definition['label'] }}</label>
                                         </div>
                                     @else
@@ -88,12 +88,12 @@
                                             @case('float')
                                                 <input id="prop-{{ $key }}" type="number" class="form-control form-control-sm"
                                                     step="0.1" min="{{ $definition['min'] }}" max="{{ $definition['max'] }}"
-                                                    wire:model.debounce.500ms="{{ $path }}.{{ $key }}">
+                                                    wire:model.live.debounce.500ms="{{ $path }}.{{ $key }}">
                                             @break
 
                                             @case('enum')
                                                 <select id="prop-{{ $key }}" class="form-select form-select-sm"
-                                                    wire:model="{{ $path }}.{{ $key }}">
+                                                    wire:model.live="{{ $path }}.{{ $key }}">
                                                     @foreach ($definition['valueLabels'] as $value => $valueLabel)
                                                         <option value="{{ $value }}">{{ $valueLabel }}</option>
                                                     @endforeach
@@ -113,7 +113,7 @@
                                                             @continue(in_array($rowKey, ['widthPercent', 'level', 'align', 'signature'], true))
                                                             <input type="text" class="form-control form-control-sm mb-2"
                                                                 placeholder="{{ $rowKey }}"
-                                                                wire:model.debounce.500ms="{{ $path }}.{{ $key }}.{{ $rowIndex }}.{{ $rowKey }}">
+                                                                wire:model.live.debounce.500ms="{{ $path }}.{{ $key }}.{{ $rowIndex }}.{{ $rowKey }}">
                                                         @endforeach
 
                                                         @if ($compactRowKeys !== [])
@@ -122,7 +122,7 @@
                                                                     <div style="width:6.5rem">
                                                                         @if ($rowKey === 'align')
                                                                             <select class="form-select form-select-sm"
-                                                                                wire:model="{{ $path }}.{{ $key }}.{{ $rowIndex }}.{{ $rowKey }}">
+                                                                                wire:model.live="{{ $path }}.{{ $key }}.{{ $rowIndex }}.{{ $rowKey }}">
                                                                                 @foreach (['left', 'center', 'right'] as $value)
                                                                                     <option value="{{ $value }}">{{ $catalog->valueLabel($value) }}</option>
                                                                                 @endforeach
@@ -131,7 +131,7 @@
                                                                             <input type="number" class="form-control form-control-sm"
                                                                                 min="0" max="{{ $rowKey === 'level' ? 2 : 100 }}"
                                                                                 placeholder="{{ $rowKey === 'level' ? 'Tingkat' : 'Lebar %' }}"
-                                                                                wire:model.debounce.500ms="{{ $path }}.{{ $key }}.{{ $rowIndex }}.{{ $rowKey }}">
+                                                                                wire:model.live.debounce.500ms="{{ $path }}.{{ $key }}.{{ $rowIndex }}.{{ $rowKey }}">
                                                                         @endif
                                                                     </div>
                                                                 @endforeach
@@ -158,7 +158,7 @@
                                                             @enderror
                                                             <input type="text" class="form-control form-control-sm mb-2"
                                                                 placeholder="atau tempel data URI / URL gambar"
-                                                                wire:model.debounce.500ms="{{ $path }}.{{ $key }}.{{ $rowIndex }}.signature">
+                                                                wire:model.live.debounce.500ms="{{ $path }}.{{ $key }}.{{ $rowIndex }}.signature">
                                                         @endif
 
                                                         <button type="button" class="btn btn-sm btn-text-danger p-0"
@@ -191,7 +191,7 @@
                                                 @enderror
                                                 <input id="prop-{{ $key }}" type="text" class="form-control form-control-sm"
                                                     placeholder="atau tempel data URI / URL gambar"
-                                                    wire:model.debounce.500ms="{{ $path }}.{{ $key }}">
+                                                    wire:model.live.debounce.500ms="{{ $path }}.{{ $key }}">
                                                 <small class="text-muted">PNG, JPG, atau WEBP, maksimal 2 MB.</small>
                                             @break
 
@@ -200,7 +200,7 @@
                                                     <div class="d-flex gap-2 mb-2" wire:key="cell-{{ $selectedId }}-{{ $rowIndex }}">
                                                         @foreach ($row as $cellIndex => $cell)
                                                             <input type="text" class="form-control form-control-sm"
-                                                                wire:model.debounce.500ms="{{ $path }}.{{ $key }}.{{ $rowIndex }}.{{ $cellIndex }}">
+                                                                wire:model.live.debounce.500ms="{{ $path }}.{{ $key }}.{{ $rowIndex }}.{{ $cellIndex }}">
                                                         @endforeach
                                                         <button type="button" class="btn btn-sm btn-text-danger px-1"
                                                             wire:click="removeRow('{{ $key }}', {{ $rowIndex }})" title="Hapus baris">
@@ -269,15 +269,15 @@
                                                             class="db-mini-rte__source form-control form-control-sm border-0 rounded-0 d-none font-monospace"
                                                             rows="4"
                                                             data-rte-source="true"
-                                                            wire:model.debounce.500ms="{{ $path }}.{{ $key }}">{{ $block['props'][$key] ?? '' }}</textarea>
+                                                            wire:model.live.debounce.500ms="{{ $path }}.{{ $key }}">{{ $block['props'][$key] ?? '' }}</textarea>
                                                     </div>
                                                     <small class="text-muted">Gunakan tombol atau Ctrl+B, Ctrl+I, Ctrl+U untuk memformat.</small>
                                                 @elseif ($key === 'payload')
                                                     <textarea id="prop-{{ $key }}" class="form-control form-control-sm" rows="4"
-                                                        wire:model.debounce.500ms="{{ $path }}.{{ $key }}"></textarea>
+                                                        wire:model.live.debounce.500ms="{{ $path }}.{{ $key }}"></textarea>
                                                 @else
                                                     <input id="prop-{{ $key }}" type="text" class="form-control form-control-sm"
-                                                        wire:model.debounce.500ms="{{ $path }}.{{ $key }}">
+                                                        wire:model.live.debounce.500ms="{{ $path }}.{{ $key }}">
                                                 @endif
                                         @endswitch
                                     @endif

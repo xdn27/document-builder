@@ -113,7 +113,7 @@
                         <div class="col-7">
                             <label class="form-label small mb-1">Tampil di</label>
                             <select class="form-select form-select-sm"
-                                wire:model="schema.zones.{{ $selectedZone }}.repeat">
+                                wire:model.live="schema.zones.{{ $selectedZone }}.repeat">
                                 <option value="all">Semua halaman</option>
                                 <option value="first-only">Halaman pertama saja</option>
                                 <option value="except-first">Selain halaman pertama</option>
@@ -181,7 +181,7 @@
                 <div class="row g-2">
                     <div class="col-6">
                         <label class="form-label small mb-1">Ukuran</label>
-                        <select class="form-select form-select-sm" wire:model="schema.page.size">
+                        <select class="form-select form-select-sm" wire:model.live="schema.page.size">
                             @foreach (['A4', 'F4', 'Letter', 'Legal'] as $size)
                                 <option value="{{ $size }}">{{ $size }}</option>
                             @endforeach
@@ -189,7 +189,7 @@
                     </div>
                     <div class="col-6">
                         <label class="form-label small mb-1">Orientasi</label>
-                        <select class="form-select form-select-sm" wire:model="schema.page.orientation">
+                        <select class="form-select form-select-sm" wire:model.live="schema.page.orientation">
                             <option value="portrait">Potret</option>
                             <option value="landscape">Lanskap</option>
                         </select>
@@ -198,12 +198,12 @@
                         <div class="col-6">
                             <label class="form-label small mb-1">Margin {{ $label }} (mm)</label>
                             <input type="number" min="0" max="50" step="1" class="form-control form-control-sm"
-                                wire:model.debounce.500ms="schema.page.margin.{{ $side }}">
+                                wire:model.live.debounce.500ms="schema.page.margin.{{ $side }}">
                         </div>
                     @endforeach
                     <div class="col-12">
                         <label class="form-label small mb-1">Huruf</label>
-                        <select class="form-select form-select-sm" wire:model="schema.style.fontFamily">
+                        <select class="form-select form-select-sm" wire:model.live="schema.style.fontFamily">
                             @foreach ($fonts as $key => $font)
                                 <option value="{{ $key }}">{{ $font['label'] }}</option>
                             @endforeach
@@ -212,12 +212,12 @@
                     <div class="col-6">
                         <label class="form-label small mb-1">Ukuran (pt)</label>
                         <input type="number" min="8" max="24" step="0.5" class="form-control form-control-sm"
-                            wire:model.debounce.500ms="schema.style.fontSize">
+                            wire:model.live.debounce.500ms="schema.style.fontSize">
                     </div>
                     <div class="col-6">
                         <label class="form-label small mb-1">Tinggi baris</label>
                         <input type="number" min="1" max="3" step="0.1" class="form-control form-control-sm"
-                            wire:model.debounce.500ms="schema.style.lineHeight">
+                            wire:model.live.debounce.500ms="schema.style.lineHeight">
                     </div>
                 </div>
             </div>
