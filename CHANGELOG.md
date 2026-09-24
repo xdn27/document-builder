@@ -3,6 +3,16 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [Unreleased]
+
+### Ditambahkan
+- Variabel pada sumber gambar: `src` blok `image` dan `letterhead-image`, `logo` blok `letterhead`,
+  serta gambar tanda tangan per kolom kini boleh berisi token seperti `{{ school.letterhead }}`.
+  Nilai diisi mentah lalu tetap melewati `ImageSourcePolicy`; token yang tidak dikenal
+  menampilkan penanda. Cadangan tinggi kop untuk mpdf ikut membaca sumber yang sudah diisi.
+- `VariableSyntax::applyRaw()` (nilai tanpa escape, null bila ada token tak terisi) dan
+  `RenderContext::source()`.
+
 ## [1.3.0] — 2026-09-24
 
 ### Ditambahkan

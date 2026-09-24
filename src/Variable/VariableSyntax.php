@@ -52,6 +52,41 @@ final class VariableSyntax
         );
     }
 
+    /**
+     * Isi variabel dengan nilai MENTAH — untuk nilai yang bukan HTML, seperti
+     * sumber gambar. Pemanggil wajib meng-escape hasilnya sendiri saat
+     * menyisipkannya ke atribut.
+     *
+     * Null bila satu saja token tidak bisa diisi: jalur tidak dikenal resolver,
+     * atau `page`/`pages` yang baru ada nilainya saat paginasi. Mengembalikan
+     * penanda seperti apply() di sini akan menghasilkan URL rusak yang sulit
+     * dibedakan dari URL yang memang ditolak.
+     */
+    public function applyRaw(string $text): ?string
+    {
+        $unresolved = false;
+
+        $result = (string) preg_replace_callback(
+            self::PATTERN,
+            function (array $matches) use (&$unresolved): string {
+                $value = in_array($matches[1], self::RESERVED, true)
+                    ? null
+                    : $this->resolver->resolve($matches[1]);
+
+                if ($value === null) {
+                    $unresolved = true;
+
+                    return '';
+                }
+
+                return $value;
+            },
+            $text,
+        );
+
+        return $unresolved ? null : $result;
+    }
+
     /** @return list<string> jalur unik yang dipakai teks, tanpa jalur cadangan */
     public static function paths(string $text): array
     {

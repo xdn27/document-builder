@@ -59,9 +59,11 @@ final class HtmlRenderer
                 continue;
             }
 
-            $src = (string) $block->prop('src');
+            // Sumber diisi variabelnya dulu, sama seperti LetterheadImageRenderer —
+            // kalau tidak, kop dari variabel tampil di kanvas tapi tanpa cadangan tinggi di PDF.
+            $src = $context->source((string) $block->prop('src'));
 
-            if (! $context->images->isAllowed($src)) {
+            if ($src === null || ! $context->images->isAllowed($src)) {
                 continue;
             }
 

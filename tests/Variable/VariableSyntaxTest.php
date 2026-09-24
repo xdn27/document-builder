@@ -76,4 +76,31 @@ class VariableSyntaxTest extends TestCase
     {
         $this->assertNull((new ArrayVariableResolver(['a' => ['b' => 'c']]))->resolve('a'));
     }
+
+    public function test_apply_raw_substitutes_values_without_escaping(): void
+    {
+        $syntax = $this->syntax(['school' => ['letterhead' => 'https://cdn.sekolah.id/kop.png?v=1&size=a4']]);
+
+        $this->assertSame(
+            'https://cdn.sekolah.id/kop.png?v=1&size=a4',
+            $syntax->applyRaw('{{ school.letterhead }}'),
+        );
+    }
+
+    public function test_apply_raw_returns_text_without_tokens_unchanged(): void
+    {
+        $this->assertSame('https://cdn.sekolah.id/kop.png', $this->syntax()->applyRaw('https://cdn.sekolah.id/kop.png'));
+    }
+
+    public function test_apply_raw_is_null_when_a_variable_is_unknown(): void
+    {
+        $syntax = $this->syntax(['cdn' => 'https://cdn.sekolah.id']);
+
+        $this->assertNull($syntax->applyRaw('{{ cdn }}/{{ school.letterhead }}'));
+    }
+
+    public function test_apply_raw_is_null_for_reserved_page_variables(): void
+    {
+        $this->assertNull($this->syntax()->applyRaw('kop-{{ page }}.png'));
+    }
 }

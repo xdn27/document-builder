@@ -17,7 +17,11 @@ final class ImageRenderer implements BlockRenderer
 
     public function render(Block $block, RenderContext $context): string
     {
-        $src = trim((string) $block->prop('src'));
+        $src = $context->source((string) $block->prop('src'));
+
+        if ($src === null) {
+            return $context->marker('Variabel gambar tidak dikenal');
+        }
 
         if ($src === '') {
             return $context->marker('Gambar belum dipilih');

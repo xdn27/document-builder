@@ -55,9 +55,13 @@ final class LetterheadRenderer implements BlockRenderer
             return '';
         }
 
-        $src = (string) $block->prop('logo');
+        $src = $context->source((string) $block->prop('logo'));
 
-        if (trim($src) === '') {
+        if ($src === null) {
+            return $context->marker('Variabel logo tidak dikenal');
+        }
+
+        if ($src === '') {
             return '';
         }
 

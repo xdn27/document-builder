@@ -313,4 +313,77 @@ class MediaBlockRendererTest extends TestCase
             );
         }
     }
+
+    public function test_letterhead_image_resolves_a_variable_source(): void
+    {
+        $context = RenderContext::sample()->withResolver(new ArrayVariableResolver([
+            'school' => ['letterhead' => $this->pngDataUri(400, 80)],
+        ]));
+
+        $html = $this->renderBlock(BlockType::LetterheadImage, ['src' => '{{ school.letterhead }}'], $context);
+
+        $this->assertStringContainsString('src="data:image/png;base64,', $html);
+        $this->assertStringContainsString('style="height:42mm"', $html);
+        $this->assertStringNotContainsString('db-marker', $html);
+    }
+
+    public function test_letterhead_image_shows_a_marker_for_an_unknown_variable(): void
+    {
+        $html = $this->renderBlock(BlockType::LetterheadImage, ['src' => '{{ school.letterhead }}']);
+
+        $this->assertStringContainsString('Variabel gambar kop tidak dikenal', $html);
+    }
+
+    public function test_variable_source_must_still_pass_the_image_policy(): void
+    {
+        // Nilai variabel tidak boleh menjadi jalan pintas melewati daftar izin.
+        $context = RenderContext::sample()
+            ->withImages(new ImageSourcePolicy(['https://cdn.sekolah.id/']))
+            ->withResolver(new ArrayVariableResolver(['school' => ['letterhead' => 'http://169.254.169.254/kop.png']]));
+
+        $html = $this->renderBlock(BlockType::LetterheadImage, ['src' => '{{ school.letterhead }}'], $context);
+
+        $this->assertStringNotContainsString('169.254.169.254', $html);
+        $this->assertStringContainsString('Sumber gambar ditolak', $html);
+    }
+
+    public function test_image_resolves_a_variable_source_and_escapes_it_once(): void
+    {
+        $context = RenderContext::sample()
+            ->withImages(new ImageSourcePolicy(['https://cdn.sekolah.id/']))
+            ->withResolver(new ArrayVariableResolver(['student' => ['photo' => 'https://cdn.sekolah.id/foto.png?v=1&w=200']]));
+
+        $html = $this->renderBlock(BlockType::Image, ['src' => '{{ student.photo }}'], $context);
+
+        $this->assertStringContainsString('src="https://cdn.sekolah.id/foto.png?v=1&amp;w=200"', $html);
+    }
+
+    public function test_image_shows_a_marker_for_an_unknown_variable(): void
+    {
+        $html = $this->renderBlock(BlockType::Image, ['src' => '{{ student.photo }}']);
+
+        $this->assertStringContainsString('Variabel gambar tidak dikenal', $html);
+    }
+
+    public function test_signature_resolves_a_variable_image(): void
+    {
+        $context = RenderContext::sample()->withResolver(new ArrayVariableResolver([
+            'employee' => ['signature' => 'data:image/png;base64,iVBORw0KGgo='],
+        ]));
+
+        $html = $this->renderBlock(BlockType::Signature, [
+            'columns' => [['place' => '', 'date' => '', 'position' => 'Kepala', 'signature' => '{{ employee.signature }}', 'name' => 'Ahmad', 'nip' => '']],
+        ], $context);
+
+        $this->assertStringContainsString('class="db-signature__image" src="data:image/png;base64,iVBORw0KGgo="', $html);
+    }
+
+    public function test_signature_shows_a_marker_for_an_unknown_variable(): void
+    {
+        $html = $this->renderBlock(BlockType::Signature, [
+            'columns' => [['place' => '', 'date' => '', 'position' => 'Kepala', 'signature' => '{{ employee.signature }}', 'name' => 'Ahmad', 'nip' => '']],
+        ]);
+
+        $this->assertStringContainsString('Variabel tanda tangan tidak dikenal', $html);
+    }
 }

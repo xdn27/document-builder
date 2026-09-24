@@ -185,7 +185,11 @@ final class SignatureRenderer implements BlockRenderer
         float $offsetXMm,
         RenderContext $context,
     ): string {
-        $src = trim($src);
+        $src = $context->source($src);
+
+        if ($src === null) {
+            return $context->marker('Variabel tanda tangan tidak dikenal');
+        }
 
         if ($src === '') {
             return '';

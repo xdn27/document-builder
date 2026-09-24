@@ -69,6 +69,12 @@ php artisan document-builder:doctor      # kapan pun: engine PDF, font, gambar, 
 Kop dan kaki dapat tampil di `all`, `first-only`, atau `except-first`. Teks boleh memuat variabel
 seperti `{{ student.name }}`; `{{ page }}` dan `{{ pages }}` diisi saat paginasi.
 
+Sumber gambar — `src` pada `image` dan `letterhead-image`, `logo` pada `letterhead`, dan gambar
+tanda tangan per kolom — juga boleh berupa variabel, mis. `{{ school.letterhead }}` yang nilainya
+URL atau data URI. Nilainya disisipkan mentah (bukan HTML) lalu **tetap** diperiksa
+`ImageSourcePolicy`, jadi variabel tidak bisa dipakai melewati daftar izin. Variabel yang tidak
+dikenal, termasuk `{{ page }}`/`{{ pages }}`, menghasilkan penanda alih-alih URL rusak.
+
 ### Variabel bawaan
 
 Tersedia di setiap aplikasi tanpa didaftarkan, dan tampil di panel variabel builder:

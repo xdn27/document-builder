@@ -162,4 +162,22 @@ class LetterBlockRendererTest extends TestCase
         $this->assertStringNotContainsString('db-letter-meta__table--with-right', $html);
         $this->assertStringNotContainsString('db-letter-meta__right', $html);
     }
+
+    public function test_letterhead_resolves_a_variable_logo(): void
+    {
+        $context = RenderContext::sample()
+            ->withImages(new ImageSourcePolicy(['https://cdn.sekolah.id/']))
+            ->withResolver(new ArrayVariableResolver(['school' => ['logo' => 'https://cdn.sekolah.id/logo.png']]));
+
+        $html = $this->renderBlock(BlockType::Letterhead, ['showLogo' => true, 'logo' => '{{ school.logo }}'], $context);
+
+        $this->assertStringContainsString('src="https://cdn.sekolah.id/logo.png"', $html);
+    }
+
+    public function test_letterhead_shows_a_marker_for_an_unknown_logo_variable(): void
+    {
+        $html = $this->renderBlock(BlockType::Letterhead, ['showLogo' => true, 'logo' => '{{ school.logo }}']);
+
+        $this->assertStringContainsString('Variabel logo tidak dikenal', $html);
+    }
 }

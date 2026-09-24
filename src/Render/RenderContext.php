@@ -94,6 +94,19 @@ final class RenderContext
         return $this->variables->apply(htmlspecialchars($raw, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'));
     }
 
+    /**
+     * Sumber gambar dari schema, dengan variabel sudah diisi nilai mentahnya
+     * (mis. `{{ school.letterhead }}` → URL kop). Null bila ada variabel yang
+     * tidak dikenal. Hasilnya tetap harus lolos $images->isAllowed(): variabel
+     * tidak pernah menjadi jalan pintas melewati daftar izin.
+     */
+    public function source(string $raw): ?string
+    {
+        $source = $this->variables->applyRaw($raw);
+
+        return $source === null ? null : trim($source);
+    }
+
     public function escape(string $raw): string
     {
         return htmlspecialchars($raw, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');

@@ -9,6 +9,7 @@ use Maqiis\DocumentBuilder\Render\RenderContext;
 use Maqiis\DocumentBuilder\Render\RenderedDocument;
 use Maqiis\DocumentBuilder\Schema\SchemaValidator;
 use Maqiis\DocumentBuilder\Schema\ZoneRepeat;
+use Maqiis\DocumentBuilder\Variable\ArrayVariableResolver;
 use PHPUnit\Framework\TestCase;
 
 class HtmlRendererTest extends TestCase
@@ -236,5 +237,30 @@ class HtmlRendererTest extends TestCase
 
         $this->assertStringContainsString('db-marker', $body);
         $this->assertStringContainsString('Blok tidak dikenal', $body);
+    }
+
+    public function test_header_height_hint_resolves_a_variable_letterhead_image(): void
+    {
+        // Tanpa ini kop dari variabel tampil di kanvas, tapi mpdf tidak menyisihkan tingginya.
+        $template = SchemaValidator::validate([
+            'version' => 1,
+            'page' => ['size' => 'A4', 'orientation' => 'portrait'],
+            'style' => [],
+            'zones' => [
+                'header' => ['height' => 'auto', 'blocks' => [
+                    ['id' => 'kop', 'type' => 'letterhead-image', 'props' => ['src' => '{{ school.letterhead }}']],
+                ]],
+                'body' => ['blocks' => [['id' => 'p1', 'type' => 'paragraph', 'props' => ['text' => 'Isi']]]],
+                'footer' => ['blocks' => []],
+            ],
+        ]);
+
+        $context = RenderContext::sample()->withResolver(new ArrayVariableResolver([
+            'school' => ['letterhead' => $this->pngDataUri(400, 80)],
+        ]));
+
+        $document = (new HtmlRenderer)->render($template, $context);
+
+        $this->assertEqualsWithDelta(22.0, $document->headerHeight(), 0.001);
     }
 }
