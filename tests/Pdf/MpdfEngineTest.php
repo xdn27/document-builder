@@ -113,6 +113,36 @@ class MpdfEngineTest extends TestCase
         $this->assertSame(1, $engine->lastPageCount());
     }
 
+    public function test_draws_the_watermark_on_every_page(): void
+    {
+        $engine = new MpdfEngine;
+        $pdf = $engine->render($this->documentFromFixture('surat-tabel-panjang.json', [
+            'watermark' => ['text' => 'DRAF', 'opacity' => 0.17],
+        ]));
+
+        // Watermark teks mpdf memasang ExtGState transparansi dengan alpha yang diminta.
+        $this->assertMatchesRegularExpression('#/ca 0\.17\b#', $pdf);
+        $this->assertGreaterThan(1, $engine->lastPageCount());
+    }
+
+    public function test_watermark_does_not_change_the_page_count(): void
+    {
+        $plain = new MpdfEngine;
+        $plain->render($this->documentFromFixture('surat-tabel-panjang.json'));
+
+        $marked = new MpdfEngine;
+        $marked->render($this->documentFromFixture('surat-tabel-panjang.json', ['watermark' => ['text' => 'RAHASIA']]));
+
+        $this->assertSame($plain->lastPageCount(), $marked->lastPageCount());
+    }
+
+    public function test_no_transparency_without_a_watermark(): void
+    {
+        $pdf = (new MpdfEngine)->render($this->documentFromFixture('surat-satu-halaman.json'));
+
+        $this->assertDoesNotMatchRegularExpression('#/ca 0\.#', $pdf);
+    }
+
     public function test_engine_reports_its_name(): void
     {
         $this->assertSame('mpdf', (new MpdfEngine)->name());

@@ -3,6 +3,21 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [Unreleased]
+
+### Ditambahkan
+- Watermark teks diagonal di setiap halaman ("DRAF", "RAHASIA", …) lewat key schema opsional
+  `watermark: {text, opacity}` dan kelas `Schema\Watermark`. Tampil di kanvas, cetak browser,
+  Gotenberg, dan mpdf (`SetWatermarkText`). Ukuran huruf di browser diukur dengan aturan yang sama
+  dengan mpdf. Watermark ditempel sesudah paginasi, jadi jumlah halaman tidak berubah.
+- Isian *Watermark* dan *Opasitas* di panel Halaman builder, dengan pilihan cepat.
+- `DocumentRenderer::render(..., watermark: ?string)` menimpa teks watermark saat render (`''`
+  mematikannya), plus `Template::withWatermark()` dan `RenderedDocument::watermark()`.
+
+### Diubah
+- `Template::toArray()` kini selalu menyertakan key `watermark`. Konsumen schema non-Blade harus
+  toleran pada key ini, sesuai aturan semver di README.
+
 ## [1.4.1] — 2026-09-24
 
 ### Diperbaiki

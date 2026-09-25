@@ -13,6 +13,7 @@ final class Template
         public readonly Zone $header,
         public readonly Zone $body,
         public readonly Zone $footer,
+        public readonly Watermark $watermark = new Watermark,
     ) {}
 
     /**
@@ -53,6 +54,16 @@ final class Template
         ]);
     }
 
+    /**
+     * Salinan dengan teks watermark lain — dipakai saat aplikasi menentukan
+     * watermark per cetak (mis. "DRAF" untuk surat yang belum disetujui).
+     * Opasitas tetap dari template; string kosong mematikan watermark.
+     */
+    public function withWatermark(string $text): self
+    {
+        return new self($this->version, $this->page, $this->style, $this->header, $this->body, $this->footer, $this->watermark->withText($text));
+    }
+
     public function toArray(): array
     {
         return [
@@ -64,6 +75,7 @@ final class Template
                 'body' => $this->body->toArray(),
                 'footer' => $this->footer->toArray(),
             ],
+            'watermark' => $this->watermark->toArray(),
         ];
     }
 }

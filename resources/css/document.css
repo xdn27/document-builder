@@ -65,6 +65,29 @@ body {
     overflow: hidden;
 }
 
+/* Watermark: cetakan di .doc-root disembunyikan, paginator menyalinnya ke tiap
+   halaman. Ukuran huruf diisi paginator (fitWatermarkSize); mpdf menggambar
+   watermark-nya sendiri. */
+.doc-watermark {
+    display: none;
+}
+
+.doc-page__watermark {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    color: #000;
+    font-weight: bold;
+    line-height: 1;
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+    z-index: 1;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
 /* db:krom-halaman-selesai */
 
 .doc-block {

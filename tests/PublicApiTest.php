@@ -56,6 +56,7 @@ class PublicApiTest extends TestCase
         'Maqiis\DocumentBuilder\Schema\SchemaValidationException',
         'Maqiis\DocumentBuilder\Schema\SchemaValidator',
         'Maqiis\DocumentBuilder\Schema\Template',
+        'Maqiis\DocumentBuilder\Schema\Watermark',
         'Maqiis\DocumentBuilder\Schema\Zone',
         'Maqiis\DocumentBuilder\Schema\ZoneRepeat',
         'Maqiis\DocumentBuilder\Testing\TemplateRecordContractTests',

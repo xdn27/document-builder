@@ -116,6 +116,33 @@ agar perulangannya terlihat. Aturan render: resolver yang tidak mengimplementasi
 dirender; baris yang kosong setelah variabel diisi dibuang; penomoran `auto` hanya muncul bila
 penerimanya lebih dari satu.
 
+## Watermark
+
+Teks diagonal samar di setiap halaman, mis. "DRAF", "RAHASIA", "SALINAN". Watermark tampil di kanvas
+builder, di cetak browser, dan di PDF (mpdf maupun Gotenberg).
+
+```json
+"watermark": { "text": "DRAF", "opacity": 0.12 }
+```
+
+- **Di template.** Isi kolom *Watermark* di panel Halaman builder. Pilihan cepat tersedia, teks bebas
+  juga boleh. Teks polos saja, tanpa markup dan variabel. Teks maksimal `Watermark::MAX_LENGTH` (40)
+  karakter, dan opasitas dibatasi 0,05–0,5. Tanpa key ini, atau dengan teks kosong, dokumen tidak
+  memakai watermark, jadi schema lama tetap sah.
+- **Saat render.** Aplikasi bisa menimpa teks per cetak atau unduhan, sementara opasitas tetap dari
+  template:
+
+  ```php
+  $renderer->render($template, watermark: $surat->disetujui ? null : 'DRAF'); // null = pakai template
+  $renderer->render($template, watermark: '');                                // matikan
+  ```
+
+  Tanpa Laravel, pakai `$template->withWatermark('DRAF')`.
+
+Ukuran huruf di browser meniru mpdf. Ukurannya mulai dari 120pt, lalu diturunkan sampai teks muat di
+sisi pendek kertas. Lebar teks diukur di DOM, bukan ditaksir. Watermark disalin ke tiap halaman
+**sesudah** paginasi, sehingga tidak pernah memengaruhi jumlah halaman.
+
 ## Font (`FontRegistry`)
 
 Font dipilih per-dokumen lewat `style.fontFamily`, bukan per-blok. Tiga yang pertama metriknya

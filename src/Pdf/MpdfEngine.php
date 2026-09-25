@@ -61,6 +61,14 @@ final class MpdfEngine implements PdfEngine
         try {
             $mpdf = new Mpdf($this->mpdfConfig($document, $page, $headerReserve, $footerReserve));
 
+            // Watermark bawaan mpdf: diagonal 45°, huruf tebal keluarga dokumen,
+            // dikecilkan sampai muat di sisi pendek kertas — paginator browser
+            // meniru aturan yang sama (fitWatermarkSize di paginate-dom.mjs).
+            if (! $document->watermark()->isEmpty()) {
+                $mpdf->SetWatermarkText($document->watermark()->text, $document->watermark()->opacity);
+                $mpdf->showWatermarkText = true;
+            }
+
             $headerHtml = $document->headerBleedsToTop()
                 ? $this->neutralizeTopBleed($document->headerHtmlForEngine())
                 : $document->headerHtmlForEngine();

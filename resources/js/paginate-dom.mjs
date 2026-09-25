@@ -15,6 +15,64 @@ const OVERFLOW_TOLERANCE_PX = 1;
 /** Batas tunggu gambar; gambar yang gagal dimuat tidak boleh menggantung paginasi. */
 const IMAGE_TIMEOUT_MS = 5000;
 
+/** Ukuran awal watermark sebelum dikecilkan — sama dengan bawaan mpdf. */
+export const WATERMARK_MAX_PT = 120;
+
+/**
+ * Meniru MpdfEngine (Mpdf::watermark()): mulai dari 120pt, turunkan satu poin
+ * sampai teks muat di sisi pendek kertas dikurangi geseran akibat rotasi 45°.
+ * Lebar teks diukur, bukan ditaksir: widthAtMax adalah lebar sungguhan pada 120pt,
+ * dan lebar teks berbanding lurus dengan ukuran huruf.
+ */
+export function fitWatermarkSize({ widthAtMax, pageWidth, pageHeight, pxPerPt }) {
+    const maxLength = Math.min(pageWidth, pageHeight);
+    const shift = Math.sin(Math.PI / 4) * pxPerPt;
+
+    for (let size = WATERMARK_MAX_PT; size > 1; size--) {
+        if ((widthAtMax * size) / WATERMARK_MAX_PT <= maxLength - shift * size) return size;
+    }
+
+    return 1;
+}
+
+/**
+ * Cetakan .doc-watermark disalin ke tiap halaman setelah paginasi selesai,
+ * sehingga tidak pernah ikut diukur sebagai isi. Diukur sekali di halaman
+ * pertama; semua halaman berukuran sama.
+ */
+function applyWatermark(doc, root, container) {
+    const template = root.querySelector('.doc-watermark');
+
+    if (!template) return;
+
+    template.remove();
+
+    let size = null;
+
+    container.querySelectorAll('.doc-page').forEach((pageEl) => {
+        const el = doc.createElement('div');
+        el.className = 'doc-page__watermark';
+        el.setAttribute('aria-hidden', 'true');
+        el.style.opacity = template.style.opacity;
+        el.textContent = template.textContent;
+        pageEl.appendChild(el);
+
+        if (size === null) {
+            el.style.fontSize = `${WATERMARK_MAX_PT}pt`;
+            // offsetWidth tidak terpengaruh transform: lebar teks sebelum diputar.
+            // 1pt = 4/3 px di CSS; ukuran halaman juga dibaca tanpa skala zoom kanvas.
+            size = fitWatermarkSize({
+                widthAtMax: el.offsetWidth,
+                pageWidth: pageEl.offsetWidth,
+                pageHeight: pageEl.offsetHeight,
+                pxPerPt: 4 / 3,
+            });
+        }
+
+        el.style.fontSize = `${size}pt`;
+    });
+}
+
 function zoneAppearsOn(repeat, pageIndex) {
     if (repeat === 'first-only') return pageIndex === 1;
     if (repeat === 'except-first') return pageIndex > 1;
@@ -187,6 +245,8 @@ export async function paginateDocument(options = {}) {
     container.querySelectorAll('.doc-page').forEach((pageEl) => {
         fillPageNumbers(pageEl, Number(pageEl.dataset.pageIndex), pages.length);
     });
+
+    applyWatermark(doc, root, container);
 
     const result = { pageCount: pages.length, overflow, truncated };
 

@@ -39,8 +39,16 @@ final class DocumentRenderer
         private readonly ?BuiltinVariables $builtins = null,
     ) {}
 
-    public function render(Template $template, ?VariableResolver $resolver = null, bool $editable = false): RenderedDocument
+    /**
+     * $watermark null memakai pengaturan template; string menimpa teksnya
+     * (opasitas tetap dari template); string kosong mematikannya.
+     */
+    public function render(Template $template, ?VariableResolver $resolver = null, bool $editable = false, ?string $watermark = null): RenderedDocument
     {
+        if ($watermark !== null) {
+            $template = $template->withWatermark($watermark);
+        }
+
         $resolver ??= $this->variables->sampleResolver();
 
         if ($this->builtins !== null) {

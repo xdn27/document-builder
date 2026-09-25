@@ -6,6 +6,7 @@ use Maqiis\DocumentBuilder\Asset\AssetLoader;
 use Maqiis\DocumentBuilder\Font\FontRegistry;
 use Maqiis\DocumentBuilder\Schema\DocumentStyle;
 use Maqiis\DocumentBuilder\Schema\PageSetup;
+use Maqiis\DocumentBuilder\Schema\Watermark;
 use Maqiis\DocumentBuilder\Schema\ZoneRepeat;
 use Maqiis\DocumentBuilder\Variable\VariableSyntax;
 
@@ -35,6 +36,7 @@ final class RenderedDocument
          */
         private readonly ?float $headerHeightHint = null,
         private readonly ?float $footerHeightHint = null,
+        private readonly Watermark $watermark = new Watermark,
     ) {}
 
     public function pageSetup(): PageSetup
@@ -45,6 +47,11 @@ final class RenderedDocument
     public function style(): DocumentStyle
     {
         return $this->style;
+    }
+
+    public function watermark(): Watermark
+    {
+        return $this->watermark;
     }
 
     public function css(): string
@@ -152,7 +159,7 @@ final class RenderedDocument
     /** Bentuk mengalir — masukan paginator. */
     public function flowHtml(): string
     {
-        return '<div class="doc-root"><div class="doc-flow">'
+        return '<div class="doc-root">'.$this->watermarkHtml().'<div class="doc-flow">'
             .$this->zone('header', $this->headerHtml, $this->headerRepeat, $this->headerHeight)
             .$this->zone('body', $this->bodyHtml, ZoneRepeat::All, 'auto')
             .$this->zone('footer', $this->footerHtml, $this->footerRepeat, $this->footerHeight)
@@ -174,6 +181,25 @@ final class RenderedDocument
             .$this->flowHtml()
             .'<script type="module">'.$script.'</script>'
             .'</body></html>';
+    }
+
+    /**
+     * Cetakan watermark, di luar .doc-flow supaya paginator tidak mengukurnya
+     * sebagai isi. Paginator menyalinnya ke tiap halaman setelah paginasi
+     * selesai; sebelum itu disembunyikan CSS. mpdf tidak memakai elemen ini —
+     * ia menggambar watermark-nya sendiri (lihat MpdfEngine).
+     */
+    private function watermarkHtml(): string
+    {
+        if ($this->watermark->isEmpty()) {
+            return '';
+        }
+
+        return sprintf(
+            '<div class="doc-watermark" aria-hidden="true" style="opacity:%s">%s</div>',
+            rtrim(rtrim(number_format($this->watermark->opacity, 3, '.', ''), '0'), '.'),
+            htmlspecialchars($this->watermark->text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+        );
     }
 
     /** mpdf memakai token sendiri untuk nomor halaman. */

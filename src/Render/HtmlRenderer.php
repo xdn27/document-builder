@@ -32,6 +32,7 @@ final class HtmlRenderer
             $template->footer->height,
             $this->autoHeightHint($template->header, $context),
             $this->autoHeightHint($template->footer, $context),
+            $template->watermark,
         );
     }
 

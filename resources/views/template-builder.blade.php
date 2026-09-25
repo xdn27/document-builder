@@ -219,6 +219,27 @@
                         <input type="number" min="1" max="3" step="0.1" class="form-control form-control-sm"
                             wire:model.live.debounce.500ms="schema.style.lineHeight">
                     </div>
+                    <div class="col-8">
+                        <label class="form-label small mb-1">Watermark</label>
+                        <input type="text" maxlength="{{ \Maqiis\DocumentBuilder\Schema\Watermark::MAX_LENGTH }}"
+                            list="db-watermark-presets" placeholder="Tanpa watermark"
+                            class="form-control form-control-sm"
+                            wire:model.live.debounce.500ms="schema.watermark.text">
+                        <datalist id="db-watermark-presets">
+                            @foreach (['DRAF', 'RAHASIA', 'SALINAN', 'CONTOH', 'ARSIP'] as $preset)
+                                <option value="{{ $preset }}"></option>
+                            @endforeach
+                        </datalist>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small mb-1">Opasitas</label>
+                        <input type="number" step="0.01"
+                            min="{{ \Maqiis\DocumentBuilder\Schema\Watermark::MIN_OPACITY }}"
+                            max="{{ \Maqiis\DocumentBuilder\Schema\Watermark::MAX_OPACITY }}"
+                            placeholder="{{ \Maqiis\DocumentBuilder\Schema\Watermark::DEFAULT_OPACITY }}"
+                            class="form-control form-control-sm"
+                            wire:model.live.debounce.500ms="schema.watermark.opacity">
+                    </div>
                 </div>
             </div>
         </div>

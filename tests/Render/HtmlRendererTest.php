@@ -8,6 +8,7 @@ use Maqiis\DocumentBuilder\Render\HtmlRenderer;
 use Maqiis\DocumentBuilder\Render\RenderContext;
 use Maqiis\DocumentBuilder\Render\RenderedDocument;
 use Maqiis\DocumentBuilder\Schema\SchemaValidator;
+use Maqiis\DocumentBuilder\Schema\Template;
 use Maqiis\DocumentBuilder\Schema\ZoneRepeat;
 use Maqiis\DocumentBuilder\Variable\ArrayVariableResolver;
 use PHPUnit\Framework\TestCase;
@@ -95,6 +96,40 @@ class HtmlRendererTest extends TestCase
         $this->assertStringContainsString('data-repeat="except-first"', $flow);
         $this->assertStringContainsString('data-height="auto"', $flow);
         $this->assertStringContainsString('data-height="12"', $flow);
+    }
+
+    private function documentWithWatermark(array $watermark): RenderedDocument
+    {
+        $raw = Template::blank()->toArray();
+        $raw['watermark'] = $watermark;
+        $raw['zones']['body']['blocks'] = [['id' => 'p1', 'type' => 'paragraph', 'props' => ['text' => 'Isi.']]];
+
+        return (new HtmlRenderer)->render(SchemaValidator::validate($raw), RenderContext::sample());
+    }
+
+    public function test_flow_html_carries_the_watermark_outside_the_flow(): void
+    {
+        $flow = $this->documentWithWatermark(['text' => 'DRAF', 'opacity' => 0.2])->flowHtml();
+
+        // Di luar .doc-flow: paginator tidak boleh mengukurnya sebagai isi.
+        $this->assertStringContainsString(
+            '<div class="doc-root"><div class="doc-watermark" aria-hidden="true" style="opacity:0.2">DRAF</div><div class="doc-flow">',
+            $flow,
+        );
+    }
+
+    public function test_watermark_text_is_escaped(): void
+    {
+        $flow = $this->documentWithWatermark(['text' => '<b>R&D</b>'])->flowHtml();
+
+        $this->assertStringContainsString('>&lt;b&gt;R&amp;D&lt;/b&gt;</div>', $flow);
+        $this->assertStringNotContainsString('<b>R&D', $flow);
+    }
+
+    public function test_flow_html_has_no_watermark_when_none_is_set(): void
+    {
+        $this->assertStringNotContainsString('doc-watermark', $this->document()->flowHtml());
+        $this->assertTrue($this->document()->watermark()->isEmpty());
     }
 
     public function test_full_html_is_a_self_contained_document(): void

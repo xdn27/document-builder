@@ -88,6 +88,7 @@ final class SchemaValidator
             $header,
             $body,
             $footer,
+            Watermark::fromArray(is_array($raw['watermark'] ?? null) ? $raw['watermark'] : []),
         );
     }
 
