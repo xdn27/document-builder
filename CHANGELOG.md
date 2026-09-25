@@ -3,7 +3,7 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
-## [Unreleased]
+## [1.5.0] — 2026-09-25
 
 ### Ditambahkan
 - Watermark teks diagonal di setiap halaman ("DRAF", "RAHASIA", …) lewat key schema opsional
