@@ -78,4 +78,56 @@ class TemplateTest extends TestCase
             $this->assertArrayHasKey('size', $e->errors());
         }
     }
+
+    /**
+     * TemplateBuilder::exportSchema()/applySchemaImport() lewat pasangan
+     * toArray()/fromArray() yang sama persis dengan test ini. Round-trip
+     * harus stabil: JSON hasil ekspor, saat diimpor lagi, menghasilkan
+     * schema yang identik — bukan cuma "valid".
+     */
+    public function test_exported_json_round_trips_back_into_an_identical_template(): void
+    {
+        $original = Template::fromArray($this->validSchema());
+
+        $exported = json_decode((string) json_encode($original->toArray()), true);
+        $reimported = Template::fromArray($exported, SchemaValidator::MAX_BYTES);
+
+        $this->assertSame($original->toArray(), $reimported->toArray());
+    }
+
+    /**
+     * Ekspor adalah jalur BACA (spt. preview()): template lama yang sudah
+     * tersimpan di atas MAX_BYTES tetap harus bisa diekspor apa adanya —
+     * itulah skenario paling umum orang menekan tombol Ekspor (mis. untuk
+     * memangkas gambar secara manual di luar builder). Batas ukuran baru
+     * ditegakkan lagi saat hasilnya diimpor balik (jalur TULIS).
+     */
+    public function test_an_oversized_saved_template_can_still_be_exported_but_not_reimported(): void
+    {
+        $exportable = Template::fromArray($this->rawWithLargeImage());
+
+        $this->assertCount(1, $exportable->body->blocks);
+
+        $exported = json_decode((string) json_encode($exportable->toArray()), true);
+
+        $this->expectException(SchemaValidationException::class);
+
+        Template::fromArray($exported, SchemaValidator::MAX_BYTES);
+    }
+
+    private function validSchema(): array
+    {
+        return [
+            'version' => 1,
+            'page' => ['size' => 'A4', 'orientation' => 'portrait'],
+            'style' => ['fontFamily' => 'tinos', 'fontSize' => 12, 'lineHeight' => 1.5],
+            'zones' => [
+                'header' => ['repeat' => 'all', 'height' => 'auto', 'blocks' => []],
+                'body' => ['blocks' => [
+                    ['id' => 'p1', 'type' => 'paragraph', 'props' => ['text' => 'Halo dunia']],
+                ]],
+                'footer' => ['repeat' => 'all', 'height' => 'auto', 'blocks' => []],
+            ],
+        ];
+    }
 }

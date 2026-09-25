@@ -36,9 +36,11 @@
                 if (isV3()) {
                     window.Livewire.on('document-preview-updated', (payload) => handle.applyPreview(unwrap(payload)));
                     window.Livewire.on('document-builder-notify', (payload) => notify(unwrap(payload)));
+                    window.Livewire.on('document-schema-exported', (payload) => downloadSchema(unwrap(payload)));
                 } else {
                     window.addEventListener('document-preview-updated', (event) => handle.applyPreview(event.detail));
                     window.addEventListener('document-builder-notify', (event) => notify(event.detail));
+                    window.addEventListener('document-schema-exported', (event) => downloadSchema(event.detail));
                 }
             }
 
@@ -69,6 +71,22 @@
                 }
 
                 console[detail.level === 'error' ? 'error' : 'log'](detail.message);
+            }
+
+            // Server mengirim schema yang sudah divalidasi & dinormalkan
+            // (bukan JS yang menyusunnya sendiri dari DOM).
+            function downloadSchema(detail) {
+                if (!detail) return;
+
+                const blob = new Blob([JSON.stringify(detail.schema, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+
+                link.href = url;
+                link.download = detail.filename || 'template.json';
+                link.click();
+
+                URL.revokeObjectURL(url);
             }
 
             document.addEventListener('livewire:load', start);   // Livewire 2
@@ -272,13 +290,28 @@
                             <i class="ti ti-printer me-1"></i>Cetak
                         </a>
                     @endif
+                    <button type="button" class="btn btn-sm btn-label-secondary" wire:click="exportSchema"
+                        title="Unduh schema template ini sebagai berkas JSON">
+                        <i class="ti ti-download me-1"></i>Ekspor
+                    </button>
                     @if (! $updateAbility || auth()->user()?->can($updateAbility))
+                        <label for="db-import-schema" class="btn btn-sm btn-label-secondary mb-0" tabindex="0"
+                            title="Timpa schema ini dari berkas JSON hasil ekspor">
+                            <i class="ti ti-upload me-1"></i>Impor
+                            <input id="db-import-schema" type="file" hidden accept="application/json"
+                                wire:model="importFile">
+                        </label>
+                        <span wire:loading wire:target="importFile" class="spinner-border spinner-border-sm align-self-center"></span>
                         <button type="button" class="btn btn-sm btn-primary" wire:click="save">
                             <i class="ti ti-device-floppy me-1"></i>Simpan
                         </button>
                     @endif
                 </div>
             </div>
+
+            @error('importFile')
+                <div class="alert alert-danger rounded-0 mb-0">{{ $message }}</div>
+            @enderror
 
             @if ($schemaErrors)
                 <div class="alert alert-danger rounded-0 mb-0">

@@ -70,6 +70,14 @@ class TemplateBuilder extends Component
      */
     public array $imageUpload = [];
 
+    /**
+     * Berkas JSON schema yang baru dipilih dari tombol impor di toolbar.
+     * Wadah sementara seperti $imageUpload di atas — dibaca lalu dibuang di
+     * applySchemaImport(); tidak pernah menjadi bagian dari $schema sendiri.
+     * Sengaja tanpa tipe, dengan alasan yang sama dengan $imageUpload.
+     */
+    public $importFile;
+
     protected $listeners = ['selectBlock', 'moveBlock', 'applyInlineEdit'];
 
     /**
@@ -122,6 +130,12 @@ class TemplateBuilder extends Component
             return;
         }
 
+        if ($name === 'importFile') {
+            $this->applySchemaImport();
+
+            return;
+        }
+
         if (! str_starts_with((string) $name, 'schema.')) {
             return;
         }
@@ -162,6 +176,48 @@ class TemplateBuilder extends Component
         data_set($this->schema, "zones.{$this->selectedZone}.blocks.{$index}.props.{$propPath}", $src);
         Arr::forget($this->imageUpload, $propPath);
 
+        $this->schemaChanged();
+    }
+
+    /**
+     * Ganti $schema dari berkas JSON yang diunggah lewat tombol Impor.
+     * Lewat jalur validasi + migrasi yang sama dengan save() (Template::
+     * fromArray()), supaya schema versi lama tetap dinaikkan dan schema yang
+     * cacat/terlalu besar ditolak sebelum sempat menimpa kanvas — kanvas
+     * tetap menampilkan keadaan sah terakhir kalau impor gagal, persis
+     * seperti perilaku save() dan preview().
+     */
+    private function applySchemaImport(): void
+    {
+        if (! $this->importFile) {
+            return;
+        }
+
+        $this->validate([
+            'importFile' => 'file|mimetypes:application/json,text/plain|max:2048',
+        ]);
+
+        $decoded = json_decode((string) file_get_contents($this->importFile->getRealPath()), true);
+        $this->importFile = null;
+
+        if (! is_array($decoded)) {
+            $this->notify('error', 'Berkas bukan JSON schema yang valid.');
+
+            return;
+        }
+
+        try {
+            $validated = Template::fromArray($decoded, SchemaValidator::MAX_BYTES);
+        } catch (SchemaValidationException $e) {
+            $this->schemaErrors = $e->errors();
+            $this->notify('error', 'Schema yang diimpor tidak valid.');
+
+            return;
+        }
+
+        $this->schema = $validated->toArray();
+        $this->selectedId = null;
+        $this->notify('success', 'Schema berhasil diimpor. Klik Simpan untuk menyimpan perubahan.');
         $this->schemaChanged();
     }
 
@@ -428,6 +484,33 @@ class TemplateBuilder extends Component
         $this->schemaErrors = [];
         $this->dirty = false;
         $this->notify('success', 'Template berhasil disimpan.');
+    }
+
+    /**
+     * Kirim schema saat ini ke klien sebagai berkas unduhan. Ini jalur BACA
+     * seperti preview() — sengaja TIDAK menyebutkan $maxBytes. Template lama
+     * yang sudah tersimpan di atas batas (dari versi package sebelumnya)
+     * justru paling butuh diekspor (mis. untuk dipangkas manual atau
+     * dipindah), jadi export tidak boleh ikut menegakkan batas tulis yang
+     * hanya masuk akal saat MENERIMA schema baru (lihat save() dan
+     * Template::fromArray()). Tetap lewat fromArray()/toArray() supaya yang
+     * diunduh berbentuk normal (angka sebagai angka, properti asing dibuang).
+     */
+    public function exportSchema(): void
+    {
+        try {
+            $validated = Template::fromArray($this->schema);
+        } catch (SchemaValidationException $e) {
+            $this->schemaErrors = $e->errors();
+            $this->notify('error', 'Template belum bisa diekspor karena ada isian yang tidak valid.');
+
+            return;
+        }
+
+        $this->dispatchToBrowser('document-schema-exported', [
+            'schema' => $validated->toArray(),
+            'filename' => Str::slug($this->template->getTemplateName() ?: 'template').'.json',
+        ]);
     }
 
     public function selectedBlockIndex(): ?int

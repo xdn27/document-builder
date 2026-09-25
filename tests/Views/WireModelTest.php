@@ -10,8 +10,8 @@ use PHPUnit\Framework\TestCase;
  * disimpan di klien sampai ada aksi lain, sehingga updated() — yang memicu
  * pratinjau kanvas — tidak pernah terpanggil saat input inspector diubah.
  * `.live` diabaikan Livewire 2 (yang live secara bawaan), jadi satu sintaks
- * berlaku di 2, 3, dan 4. Input berkas (`imageUpload.*`) punya jalur unggah
- * sendiri dan tidak terkena aturan ini.
+ * berlaku di 2, 3, dan 4. Input berkas (`imageUpload.*`, `importFile`) punya
+ * jalur unggah sendiri dan tidak terkena aturan ini.
  */
 final class WireModelTest extends TestCase
 {
@@ -27,7 +27,7 @@ final class WireModelTest extends TestCase
                 preg_match_all('/wire:model([.\w]*)="([^"]*)"/', $line, $matches, PREG_SET_ORDER);
 
                 foreach ($matches as [, $modifiers, $target]) {
-                    if (str_starts_with($target, 'imageUpload.')) {
+                    if (str_starts_with($target, 'imageUpload.') || $target === 'importFile') {
                         continue;
                     }
 

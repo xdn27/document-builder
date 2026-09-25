@@ -3,6 +3,17 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [Unreleased]
+
+### Ditambahkan
+- Tombol *Ekspor* dan *Impor* di toolbar builder Livewire (`TemplateBuilder::exportSchema()` dan
+  `applySchemaImport()`). Ekspor mengunduh `$schema` saat ini sebagai berkas JSON lewat jalur BACA
+  (`Template::fromArray()` tanpa `$maxBytes`, seperti `preview()`) — template lama yang sudah
+  tersimpan di atas `SchemaValidator::MAX_BYTES` tetap bisa diekspor apa adanya. Impor membaca
+  berkas JSON yang dipilih pengguna lewat jalur TULIS yang sama dengan `save()`
+  (`Template::fromArray()` dengan `SchemaValidator::MAX_BYTES`), sehingga migrasi versi lama dan
+  validasi struktur/ukuran tetap ditegakkan sebelum menimpa kanvas.
+
 ## [1.5.0] — 2026-09-25
 
 ### Ditambahkan
