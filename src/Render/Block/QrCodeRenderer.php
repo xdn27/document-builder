@@ -32,6 +32,16 @@ final class QrCodeRenderer implements BlockRenderer
             return $context->marker('Pembangkit QR tidak tersedia');
         }
 
+        if ((string) $block->prop('positionMode') === 'fixed') {
+            return sprintf(
+                '<div class="db-qrcode__wrap db-qrcode__wrap--fixed" style="position:absolute;top:%s;left:%s"><span class="db-qrcode__svg" style="display:inline-block;width:%s">%s</span></div>',
+                Mm::css((float) $block->prop('topMm')),
+                Mm::css((float) $block->prop('leftMm')),
+                Mm::css($size),
+                $svg,
+            );
+        }
+
         return sprintf(
             '<div class="db-qrcode__wrap" style="text-align:%s"><span class="db-qrcode__svg" style="display:inline-block;width:%s">%s</span></div>',
             $context->escape((string) $block->prop('align')),

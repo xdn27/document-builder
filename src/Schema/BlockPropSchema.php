@@ -117,6 +117,9 @@ final class BlockPropSchema
                 'payload' => ['type' => 'string', 'default' => ''],
                 'sizeMm' => ['type' => 'float', 'default' => 30.0, 'min' => 10.0, 'max' => 80.0],
                 'align' => ['type' => 'enum', 'default' => 'left', 'values' => self::ALIGNMENTS],
+                'positionMode' => ['type' => 'enum', 'default' => 'flow', 'values' => ['flow', 'fixed']],
+                'topMm' => ['type' => 'float', 'default' => 0.0, 'min' => 0.0, 'max' => 500.0],
+                'leftMm' => ['type' => 'float', 'default' => 0.0, 'min' => 0.0, 'max' => 500.0],
             ],
             BlockType::Spacer => [
                 'heightMm' => ['type' => 'float', 'default' => 10.0, 'min' => 0.0, 'max' => 200.0],

@@ -26,6 +26,7 @@ final class PropCatalog
         'headerBold' => 'Header tebal', 'border' => 'Garis tabel', 'fontSizePt' => 'Ukuran huruf (pt, 0 = ikut dokumen)',
         'items' => 'Butir', 'style' => 'Gaya', 'src' => 'Sumber gambar', 'alt' => 'Teks alternatif',
         'widthMm' => 'Lebar (mm)', 'payload' => 'Isi QR', 'sizeMm' => 'Ukuran (mm)', 'heightMm' => 'Tinggi (mm)',
+        'positionMode' => 'Posisi', 'topMm' => 'Jarak dari atas halaman (mm)', 'leftMm' => 'Jarak dari kiri halaman (mm)',
         'thicknessMm' => 'Tebal (mm)', 'widthPercent' => 'Lebar (%)',
         'marginTopMm' => 'Margin atas (mm)', 'marginRightMm' => 'Margin kanan (mm)',
         'marginBottomMm' => 'Margin bawah (mm)', 'marginLeftMm' => 'Margin kiri (mm)',
@@ -50,6 +51,7 @@ final class PropCatalog
         'heading' => 'Konten', 'itemText' => 'Konten', 'closing' => 'Konten',
         'itemSpaceMm' => 'Ukuran & Jarak', 'numbering' => 'Tampilan',
         'align' => 'Tata Letak', 'rightAlign' => 'Tata Letak', 'direction' => 'Tata Letak', 'textAlign' => 'Tata Letak',
+        'positionMode' => 'Tata Letak', 'topMm' => 'Tata Letak', 'leftMm' => 'Tata Letak',
         'logoHeightMm' => 'Ukuran & Jarak', 'labelWidthMm' => 'Ukuran & Jarak', 'indentMm' => 'Ukuran & Jarak',
         'spaceBeforeMm' => 'Ukuran & Jarak', 'spaceAfterMm' => 'Ukuran & Jarak', 'spaceMm' => 'Ukuran & Jarak',
         'fontSizePt' => 'Ukuran & Jarak', 'widthMm' => 'Ukuran & Jarak', 'sizeMm' => 'Ukuran & Jarak',
@@ -79,6 +81,7 @@ final class PropCatalog
         'bullet' => 'Bullet', 'number' => 'Nomor',
         'auto' => 'Otomatis (bila lebih dari satu)', 'always' => 'Selalu', 'never' => 'Tanpa nomor',
         'solid' => 'Garis penuh', 'dashed' => 'Garis putus-putus', 'dotted' => 'Garis titik-titik',
+        'flow' => 'Mengalir dengan teks', 'fixed' => 'Posisi tetap di halaman',
     ];
 
     public function __construct(private readonly ?LabelTranslator $translator = null) {}

@@ -96,6 +96,36 @@ class MediaBlockRendererTest extends TestCase
         $this->assertStringContainsString('db-marker', $html);
     }
 
+    public function test_qr_fixed_position_renders_absolute_from_the_page_with_the_given_offset(): void
+    {
+        $html = $this->renderBlock(
+            BlockType::QrCode,
+            [
+                'payload' => 'https://sekolah.id/verif/123',
+                'sizeMm' => 25,
+                'positionMode' => 'fixed',
+                'topMm' => 40,
+                'leftMm' => 15,
+            ],
+            RenderContext::sample()->withQr($this->echoingQrGenerator()),
+        );
+
+        $this->assertStringContainsString('position:absolute', $html);
+        $this->assertStringContainsString('top:40mm', $html);
+        $this->assertStringContainsString('left:15mm', $html);
+    }
+
+    public function test_qr_flow_position_never_renders_absolute_positioning(): void
+    {
+        $html = $this->renderBlock(
+            BlockType::QrCode,
+            ['payload' => 'apa saja', 'sizeMm' => 25],
+            RenderContext::sample()->withQr($this->echoingQrGenerator()),
+        );
+
+        $this->assertStringNotContainsString('position:absolute', $html);
+    }
+
     public function test_signature_renders_one_column_per_entry(): void
     {
         $html = $this->renderBlock(BlockType::Signature, [
