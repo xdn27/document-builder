@@ -3,6 +3,15 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [1.7.0] — 2026-09-26
+
+### Ditambahkan
+- Properti posisi pada block QR code: `positionMode` (`flow` bawaan, atau `fixed`), `topMm`,
+  `leftMm`. Mode `fixed` merender QR dengan `position:absolute` relatif ke `.doc-page`, pola yang
+  sama dipakai watermark — bisa ditaruh di zona header, body, atau footer, dan otomatis terpotong
+  pada batas halaman. Block ini tidak menyumbang tinggi ke alur dokumen, jadi tidak pernah memicu
+  halaman baru sendiri; ia ikut ke halaman mana pun urutannya jatuh di paginasi.
+
 ## [1.6.0] — 2026-09-25
 
 ### Ditambahkan
