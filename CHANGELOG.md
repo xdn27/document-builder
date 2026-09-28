@@ -3,6 +3,21 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [1.8.0] — 2026-09-28
+
+### Ditambahkan
+- Variabel tambahan per builder: `TemplateBuilder::mount($template, $extraVariables)` menerima daftar
+  entri `{path, label, sample, group?}` di atas katalog bersama `VariableRegistry`. Panel variabel dan
+  nilai contoh pratinjau kanvas memakainya. Berguna bila katalog bersama memuat variabel semua jenis
+  dokumen tetapi builder tertentu hanya perlu sebagian. Disimpan di property publik
+  `$extraVariables` (`#[Locked]`, ikut snapshot Livewire), jadi tetap berlaku di setiap update.
+- `VariableRegistry::extend(array $entries): self` — salinan registry ditambah entri; yang asli
+  tidak berubah, path yang sama menimpa. Entri salah bentuk melempar `InvalidArgumentException`.
+
+### Diubah
+- `TemplateBuilder` membangun katalog gabungan satu kali per request (bukan per pemanggilan
+  `render()`/`preview()`). Tanpa `$extraVariables` perilakunya identik dengan 1.7.
+
 ## [1.7.0] — 2026-09-26
 
 ### Ditambahkan
