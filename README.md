@@ -97,6 +97,24 @@ Matikan dengan `document-builder.variables.builtin = false`. Tanpa Laravel, bung
 sendiri: `(new BuiltinVariables(new DateTimeImmutable))->resolver($resolver)`, dan panggil
 `->register($registry)` untuk panelnya.
 
+### Variabel tambahan per builder
+
+Katalog bersama (`VariableRegistry`) berlaku untuk semua builder. Bila satu builder perlu variabel
+yang hanya relevan untuknya, teruskan saat memasang komponen; entri ditambahkan ke salinan katalog
+dan tidak mengubah katalog bersama:
+
+```blade
+<livewire:document-builder::template-builder
+    :template="$definition"
+    :extra-variables="[
+        ['path' => 'employee.name', 'label' => 'Nama Pegawai', 'sample' => 'Ahmad Fauzi', 'group' => 'Pegawai'],
+    ]" />
+```
+
+`group` boleh dihilangkan (bawaan `Umum`). Panel dan nilai contoh pratinjau memakainya di setiap
+update Livewire karena disimpan di property publik `$extraVariables` yang `#[Locked]`. Path yang sama
+dengan katalog bersama menimpanya.
+
 ### Blok penerima & koleksi
 
 Blok `recipient` merender satu entri per butir koleksi `recipients`. Di dalam `itemText`,

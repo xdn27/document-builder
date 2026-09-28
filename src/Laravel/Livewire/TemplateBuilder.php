@@ -4,6 +4,7 @@ namespace Maqiis\DocumentBuilder\Laravel\Livewire;
 
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Maqiis\DocumentBuilder\Font\FontRegistry;
@@ -36,6 +37,19 @@ class TemplateBuilder extends Component
     public const ZONES = ['header', 'body', 'footer'];
 
     public TemplateRecord $template;
+
+    /**
+     * Variabel tambahan khusus builder ini, di atas katalog bersama
+     * (VariableRegistry): panel dan nilai contoh pratinjau memakainya. Diisi
+     * sekali lewat mount() dan ikut snapshot, jadi tetap ada di setiap update
+     * Livewire; #[Locked] supaya klien tidak bisa menulis ulang. Bentuk entri:
+     * lihat VariableRegistry::extend(). Bukan bernama $variables: property
+     * publik diteruskan ke view dan akan menimpa grup panel dari render().
+     *
+     * @var list<array{path:string,label:string,sample:string,group?:string}>
+     */
+    #[Locked]
+    public array $extraVariables = [];
 
     public array $schema = [];
 
@@ -86,11 +100,19 @@ class TemplateBuilder extends Component
      */
     protected ?array $initialPreview = null;
 
-    public function mount(TemplateRecord $template): void
+    /** Katalog gabungan, dibangun sekali per request (properti private tidak ikut snapshot). */
+    private ?VariableRegistry $variableCatalog = null;
+
+    /**
+     * @param  list<array{path:string,label:string,sample:string,group?:string}>  $extraVariables  variabel tambahan; lihat $extraVariables
+     */
+    public function mount(TemplateRecord $template, array $extraVariables = []): void
     {
         $template->authorizeTemplateView();
 
         $this->template = $template;
+        $this->extraVariables = array_values($extraVariables);
+        $this->variableCatalog(); // entri yang salah bentuk gagal di sini, bukan di tengah render
         $this->schema = $template->getTemplateSchema() ?: Template::blank()->toArray();
         $this->initialPreview = $this->preview();
     }
@@ -542,12 +564,19 @@ class TemplateBuilder extends Component
         ]);
     }
 
+    private function variableCatalog(): VariableRegistry
+    {
+        return $this->variableCatalog ??= app(VariableRegistry::class)->extend($this->extraVariables);
+    }
+
     /** @return array{html:string,css:string}|null null bila schema belum valid */
     private function preview(): ?array
     {
         try {
             // Mode editable: region teks ditandai data-edit-* untuk sunting inline.
-            $document = app(DocumentRenderer::class)->render(Template::fromArray($this->schema), editable: true);
+            // Tanpa variabel tambahan, renderer memakai katalog bersama seperti biasa.
+            $resolver = $this->extraVariables === [] ? null : $this->variableCatalog()->sampleResolver();
+            $document = app(DocumentRenderer::class)->render(Template::fromArray($this->schema), $resolver, editable: true);
         } catch (SchemaValidationException $e) {
             // Kanvas ditahan pada keadaan sah terakhir; panel menampilkan galatnya.
             $this->schemaErrors = $e->errors();
@@ -580,7 +609,7 @@ class TemplateBuilder extends Component
             'catalog' => $catalog,
             'labelTranslator' => app(LabelTranslator::class),
             'blockTypes' => BlockType::cases(),
-            'variables' => app(VariableRegistry::class)->groups(),
+            'variables' => $this->variableCatalog()->groups(),
             'fonts' => FontRegistry::all(),
             'selectedIndex' => $selectedIndex,
             'selectedBlock' => $selectedBlock,

@@ -17,6 +17,32 @@ final class VariableRegistry
         return $this;
     }
 
+    /**
+     * Salinan registry ini ditambah entri dari luar; registry aslinya tidak berubah.
+     * Dipakai builder untuk variabel khusus satu dokumen (mis. milik sumber datanya)
+     * di atas katalog bersama. Path yang sama menimpa entri katalog.
+     *
+     * @param  list<array{path:string,label:string,sample:string,group?:string}>  $entries
+     *
+     * @throws \InvalidArgumentException bila ada entri tanpa path, label, atau sample berupa string
+     */
+    public function extend(array $entries): self
+    {
+        $copy = clone $this;
+
+        foreach ($entries as $entry) {
+            foreach (['path', 'label', 'sample'] as $key) {
+                if (! is_string($entry[$key] ?? null)) {
+                    throw new \InvalidArgumentException("Entri variabel wajib punya \"{$key}\" bertipe string.");
+                }
+            }
+
+            $copy->define($entry['path'], $entry['label'], $entry['sample'], $entry['group'] ?? 'Umum');
+        }
+
+        return $copy;
+    }
+
     /** @return list<array{path:string,label:string,sample:string,group:string}> */
     public function all(): array
     {
