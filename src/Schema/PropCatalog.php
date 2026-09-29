@@ -19,7 +19,7 @@ final class PropCatalog
         'showLogo' => 'Tampilkan logo', 'logo' => 'Sumber logo', 'logoHeightMm' => 'Tinggi logo (mm)',
         'line1' => 'Baris 1', 'line2' => 'Baris 2', 'line3' => 'Baris 3', 'line4' => 'Baris 4',
         'align' => 'Perataan', 'rule' => 'Garis bawah', 'rows' => 'Baris', 'labelWidthMm' => 'Lebar label (mm)',
-        'separator' => 'Pemisah', 'rightText' => 'Teks kanan (mis. tempat, tanggal)', 'rightAlign' => 'Perataan teks kanan',
+        'separator' => 'Pemisah', 'rightText' => 'Teks kanan (mis. tempat, tanggal)', 'rightSubText' => 'Teks kanan baris kedua (mis. tanggal Hijriah)', 'rightAlign' => 'Perataan teks kanan',
         'text' => 'Teks', 'indentMm' => 'Indentasi baris pertama (mm)', 'direction' => 'Arah teks',
         'spaceBeforeMm' => 'Jarak atas (mm)', 'spaceAfterMm' => 'Jarak bawah (mm)', 'columns' => 'Kolom',
         'spaceMm' => 'Ruang tanda tangan (mm)', 'textAlign' => 'Perataan teks', 'repeatHeader' => 'Ulangi header di tiap halaman',
@@ -46,7 +46,7 @@ final class PropCatalog
      */
     private const GROUPS = [
         'logo' => 'Konten', 'line1' => 'Konten', 'line2' => 'Konten', 'line3' => 'Konten', 'line4' => 'Konten',
-        'rows' => 'Konten', 'separator' => 'Konten', 'rightText' => 'Konten', 'text' => 'Konten', 'columns' => 'Konten',
+        'rows' => 'Konten', 'separator' => 'Konten', 'rightText' => 'Konten', 'rightSubText' => 'Konten', 'text' => 'Konten', 'columns' => 'Konten',
         'items' => 'Konten', 'src' => 'Konten', 'alt' => 'Konten', 'payload' => 'Konten',
         'heading' => 'Konten', 'itemText' => 'Konten', 'closing' => 'Konten',
         'itemSpaceMm' => 'Ukuran & Jarak', 'numbering' => 'Tampilan',

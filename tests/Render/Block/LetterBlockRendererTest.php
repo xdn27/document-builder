@@ -153,6 +153,65 @@ class LetterBlockRendererTest extends TestCase
         $this->assertStringNotContainsString('db-letter-meta__label', $html);
     }
 
+    public function test_letter_meta_right_sub_text_renders_below_right_text(): void
+    {
+        $html = $this->renderBlock(BlockType::LetterMeta, [
+            'rows' => [
+                ['label' => 'Nomor', 'value' => '001/SK/IX/2026'],
+                ['label' => 'Hal', 'value' => 'Undangan'],
+            ],
+            'rightText' => 'Jakarta, <u>1 Januari 2026</u>',
+            'rightSubText' => '1 Ramadhan 1447 H',
+            'rightAlign' => 'right',
+        ]);
+
+        $this->assertSame(2, substr_count($html, '<tr>'), 'Baris kedua seharusnya tidak menambah baris tabel');
+        $this->assertSame(1, substr_count($html, '<table'), 'Baris kedua seharusnya tidak jadi tabel bersarang');
+        $this->assertSame(1, substr_count($html, 'db-letter-meta__right'));
+        $this->assertMatchesRegularExpression('#rowspan="2"#', $html);
+        $this->assertStringContainsString('<u>1 Januari 2026</u>', $html);
+        $this->assertStringContainsString('db-letter-meta__right-sub', $html);
+        $this->assertStringContainsString('1 Ramadhan 1447 H', $html);
+        $this->assertStringContainsString('db-letter-meta__table--with-right', $html);
+    }
+
+    public function test_letter_meta_right_sub_text_alone_still_renders_without_rows(): void
+    {
+        $html = $this->renderBlock(BlockType::LetterMeta, [
+            'rows' => [],
+            'rightSubText' => '1 Ramadhan 1447 H',
+        ]);
+
+        $this->assertSame(1, substr_count($html, '<tr>'));
+        $this->assertStringContainsString('1 Ramadhan 1447 H', $html);
+        $this->assertStringContainsString('db-letter-meta__table--with-right', $html);
+        $this->assertStringNotContainsString('db-letter-meta__label', $html);
+    }
+
+    public function test_letter_meta_single_right_text_output_has_no_extra_markup(): void
+    {
+        $html = $this->renderBlock(BlockType::LetterMeta, [
+            'rows' => [['label' => 'Nomor', 'value' => '1']],
+            'rightText' => 'Bandung, 14 September 2026',
+        ]);
+
+        $this->assertStringContainsString('Bandung, 14 September 2026', $html);
+        $this->assertStringNotContainsString('db-letter-meta__right-sub', $html);
+        $this->assertStringNotContainsString('<br', $html);
+    }
+
+    public function test_letter_meta_marks_both_right_lines_as_separate_edit_regions(): void
+    {
+        $html = $this->renderBlock(BlockType::LetterMeta, [
+            'rows' => [['label' => 'Nomor', 'value' => '1']],
+            'rightText' => 'Jakarta, 1 Januari 2026',
+            'rightSubText' => '1 Ramadhan 1447 H',
+        ], RenderContext::sample()->withEditable());
+
+        $this->assertStringContainsString('data-edit-prop="rightText"', $html);
+        $this->assertStringContainsString('data-edit-prop="rightSubText"', $html);
+    }
+
     public function test_letter_meta_without_right_text_keeps_the_plain_table_class(): void
     {
         $html = $this->renderBlock(BlockType::LetterMeta, [

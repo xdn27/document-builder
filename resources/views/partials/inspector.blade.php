@@ -215,7 +215,7 @@
                                             @break
 
                                             @default
-                                                @if (in_array($key, ['text', 'itemText'], true))
+                                                @if (in_array($key, ['text', 'itemText', 'rightText', 'rightSubText'], true))
                                                     <div class="db-mini-rte border rounded" wire:ignore>
                                                         <div class="db-mini-rte__toolbar bg-light border-bottom p-1 d-flex justify-content-between align-items-center">
                                                             <div class="btn-group btn-group-sm" role="group">

@@ -16,6 +16,11 @@ use Maqiis\DocumentBuilder\Support\Mm;
  * didukung penuh mpdf, sedangkan tabel di dalam sel tabel adalah sumber quirk
  * yang lebih besar (lihat catatan blok signature untuk contoh serupa).
  *
+ * Baris kedua opsional (prop `rightSubText`, mis. tanggal Hijriah) dirender di
+ * sel yang sama dipisah `<br />` — bukan div di dalam td, supaya tetap
+ * mpdf-safe. Keduanya rich text (`<b><i><u><br>`), jadi garis bawah tanggal
+ * Masehi ditulis `<u>...</u>` langsung di `rightText`.
+ *
  * @internal Detail implementasi, bebas berubah di rilis minor — lihat "API publik" di README.
  */
 final class LetterMetaRenderer implements BlockRenderer
@@ -29,26 +34,52 @@ final class LetterMetaRenderer implements BlockRenderer
     {
         $rows = $block->prop('rows');
         $rightText = trim((string) $block->prop('rightText'));
+        $rightSubText = trim((string) $block->prop('rightSubText'));
+        $hasRight = $rightText !== '' || $rightSubText !== '';
 
-        if ($rows === [] && $rightText === '') {
+        if ($rows === [] && ! $hasRight) {
             return '';
         }
 
         $labelWidth = Mm::css((float) $block->prop('labelWidthMm'));
         $separator = $context->plain((string) $block->prop('separator'));
 
-        $rightCell = $rightText === '' ? '' : sprintf(
-            '<td class="db-letter-meta__right" rowspan="%d" style="text-align:%s"%s>%s</td>',
-            max(count($rows), 1),
-            $context->escape((string) $block->prop('rightAlign')),
-            $context->editAttr('rightText', $rightText, rich: true),
-            $context->rich($rightText),
-        );
+        $rightCell = '';
+
+        if ($hasRight) {
+            if ($rightText !== '' && $rightSubText !== '') {
+                // Dua baris terisi: tiap baris region suntingnya sendiri, karena
+                // satu data-edit-prop hanya bisa menunjuk ke satu prop schema.
+                $rightInner = sprintf(
+                    '<span%s>%s</span><br /><span class="db-letter-meta__right-sub"%s>%s</span>',
+                    $context->editAttr('rightText', $rightText, rich: true),
+                    $context->rich($rightText),
+                    $context->editAttr('rightSubText', $rightSubText, rich: true),
+                    $context->rich($rightSubText),
+                );
+                $cellEditAttr = '';
+            } else {
+                // Satu baris saja: keluaran identik dengan sebelum rightSubText
+                // ada (tanpa span tambahan), supaya template lama byte-identical.
+                $singleProp = $rightText !== '' ? 'rightText' : 'rightSubText';
+                $singleValue = $rightText !== '' ? $rightText : $rightSubText;
+                $rightInner = $context->rich($singleValue);
+                $cellEditAttr = $context->editAttr($singleProp, $singleValue, rich: true);
+            }
+
+            $rightCell = sprintf(
+                '<td class="db-letter-meta__right" rowspan="%d" style="text-align:%s"%s>%s</td>',
+                max(count($rows), 1),
+                $context->escape((string) $block->prop('rightAlign')),
+                $cellEditAttr,
+                $rightInner,
+            );
+        }
 
         // Modifier terpisah, bukan mengubah .db-letter-meta__table langsung: tabel
         // hanya perlu melebar penuh saat kolom kanan ada, dan template lama tanpa
         // teks kanan harus tetap terlihat identik seperti sebelum fitur ini.
-        $tableClass = $rightText === '' ? 'db-letter-meta__table' : 'db-letter-meta__table db-letter-meta__table--with-right';
+        $tableClass = $hasRight ? 'db-letter-meta__table db-letter-meta__table--with-right' : 'db-letter-meta__table';
 
         if ($rows === []) {
             return '<table class="'.$tableClass.'"><tbody><tr>'.$rightCell.'</tr></tbody></table>';

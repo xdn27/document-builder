@@ -43,6 +43,7 @@ final class BlockPropSchema
                 'labelWidthMm' => ['type' => 'float', 'default' => 25.0, 'min' => 10.0, 'max' => 80.0],
                 'separator' => ['type' => 'string', 'default' => ':'],
                 'rightText' => ['type' => 'string', 'default' => ''],
+                'rightSubText' => ['type' => 'string', 'default' => ''],
                 'rightAlign' => ['type' => 'enum', 'default' => 'right', 'values' => self::ALIGNMENTS],
             ],
             // Satu entri per butir koleksi 'recipients'; {{ recipient.* }} di

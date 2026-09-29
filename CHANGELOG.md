@@ -3,6 +3,17 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [Unreleased]
+
+### Ditambahkan
+- Baris kedua teks kanan pada blok `letter-meta` lewat prop baru `rightSubText` (mis. tanggal
+  Hijriah di bawah tanggal Masehi). Dirender di sel yang sama dipisah `<br />` (mpdf-safe, tanpa
+  tabel bersarang, `rowspan` tetap utuh); template lama yang hanya mengisi `rightText` menghasilkan
+  HTML yang identik seperti sebelumnya. Contoh: `rightText` = `Jakarta, <u>1 Januari 2026</u>`,
+  `rightSubText` = `1 Ramadhan 1447 H`.
+- Kolom `rightText` dan `rightSubText` di inspektor builder memakai mini-RTE (toolbar B/I/U) seperti
+  `text`/`itemText`, sehingga garis bawah tanggal bisa diterapkan lewat tombol tanpa mengetik `<u>`.
+
 ## [1.8.0] — 2026-09-28
 
 ### Ditambahkan
