@@ -4,11 +4,13 @@ namespace Maqiis\DocumentBuilder\Tests\Pdf;
 
 use Maqiis\DocumentBuilder\Media\ImageResolver;
 use Maqiis\DocumentBuilder\Pdf\MpdfEngine;
+use Maqiis\DocumentBuilder\Qr\QrCodeGenerator;
 use Maqiis\DocumentBuilder\Render\HtmlRenderer;
 use Maqiis\DocumentBuilder\Render\RenderContext;
 use Maqiis\DocumentBuilder\Render\RenderedDocument;
 use Maqiis\DocumentBuilder\Schema\BlockType;
 use Maqiis\DocumentBuilder\Schema\SchemaValidator;
+use Maqiis\DocumentBuilder\Schema\Template;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
@@ -471,5 +473,165 @@ class MpdfEngineTest extends TestCase
         // Gambar tanda tangan bergeser 4mm ke kanan
         $diffXMm = ($img1[0] - $img0[0]) * 25.4 / 72;
         $this->assertEqualsWithDelta(4.0, $diffXMm, 0.1);
+    }
+
+    // --- QR berposisi tetap -------------------------------------------------------------
+    // mpdf hanya menghormati top/left pada `position:absolute` tingkat atas, jadi MpdfEngine
+    // menggambar QR tetap di luar pembungkus alur (lihat MpdfEngine::writeBody()/zone()).
+
+    private function qrGenerator(): QrCodeGenerator
+    {
+        return new class implements QrCodeGenerator
+        {
+            public function toSvg(string $payload, float $sizeMm): string
+            {
+                return '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="5" height="5"/></svg>';
+            }
+        };
+    }
+
+    /** @return array<string, mixed> */
+    private function paragraph(string $id, string $text): array
+    {
+        return ['id' => $id, 'type' => 'paragraph', 'props' => ['text' => $text]];
+    }
+
+    /** @return array<string, mixed> */
+    private function fixedQr(string $id, float $sizeMm, float $topMm, float $leftMm): array
+    {
+        return ['id' => $id, 'type' => 'qrcode', 'props' => ['payload' => 'x', 'sizeMm' => $sizeMm, 'positionMode' => 'fixed', 'topMm' => $topMm, 'leftMm' => $leftMm]];
+    }
+
+    /**
+     * @param  array<string, list<array<string, mixed>>>  $zones  blok per zona
+     */
+    private function qrDocument(array $zones): RenderedDocument
+    {
+        $schema = Template::blank()->toArray();
+
+        foreach ($zones as $zone => $blocks) {
+            $schema['zones'][$zone]['blocks'] = $blocks;
+        }
+
+        $schema['zones']['header']['height'] = 30;
+        $schema['zones']['footer']['height'] = 20;
+
+        return (new HtmlRenderer)->render(SchemaValidator::validate($schema), RenderContext::sample()->withQr($this->qrGenerator()));
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function lines(int $count, int $from = 0): array
+    {
+        $blocks = [];
+
+        for ($i = $from; $i < $from + $count; $i++) {
+            $blocks[] = $this->paragraph("line{$i}", "Baris isi nomor {$i}");
+        }
+
+        return $blocks;
+    }
+
+    /**
+     * Posisi tiap gambar yang ditempatkan di PDF, dibaca dari aliran isi halaman:
+     * `1 0 0 1 X Y cm /FO1 Do` dengan X dan Y dalam poin dari pojok kiri bawah.
+     * Halaman diurutkan menurut aliran isi yang memuat teks.
+     *
+     * @return list<array{page: int, left: float, top: float}> dalam mm dari pojok kiri atas halaman
+     */
+    private function qrPlacements(string $pdf, float $pageHeightMm): array
+    {
+        preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $pdf, $streams);
+
+        $page = 0;
+        $placements = [];
+
+        foreach ($streams[1] as $raw) {
+            $content = @gzuncompress($raw);
+
+            if ($content === false || ! str_contains($content, 'BT')) {
+                continue;
+            }
+
+            $page++;
+
+            if (preg_match_all('/1\.000 0 0 1\.000 ([\d.]+) ([\d.]+) cm\s*\/FO\d+ Do/', $content, $matches, PREG_SET_ORDER)) {
+                foreach ($matches as $m) {
+                    $placements[] = [
+                        'page' => $page,
+                        'left' => round((float) $m[1] / 72 * 25.4, 1),
+                        'top' => round($pageHeightMm - (float) $m[2] / 72 * 25.4, 1),
+                    ];
+                }
+            }
+        }
+
+        return $placements;
+    }
+
+    public function test_a_fixed_qr_in_the_body_is_drawn_at_page_coordinates_on_the_page_of_its_block(): void
+    {
+        $document = $this->qrDocument(['body' => [
+            $this->paragraph('awal', 'Halaman pertama'),
+            $this->fixedQr('q1', 25, 100, 150),
+            ...$this->lines(120),
+            $this->fixedQr('q2', 25, 50, 20),
+        ]]);
+        $engine = new MpdfEngine;
+
+        $placements = $this->qrPlacements($engine->render($document), $document->pageSetup()->heightMm());
+
+        $this->assertGreaterThan(1, $engine->lastPageCount());
+        $this->assertCount(2, $placements);
+        $this->assertEquals(['page' => 1, 'left' => 150.0, 'top' => 100.0], $placements[0]);
+        $this->assertEquals(['page' => $engine->lastPageCount(), 'left' => 20.0, 'top' => 50.0], $placements[1]);
+    }
+
+    public function test_fixed_qr_codes_in_the_header_and_footer_repeat_on_every_page(): void
+    {
+        $document = $this->qrDocument([
+            'header' => [$this->paragraph('kop', 'Kop surat'), $this->fixedQr('qh', 12, 15, 195)],
+            'body' => $this->lines(120),
+            'footer' => [$this->paragraph('kaki', 'Kaki surat'), $this->fixedQr('qf', 12, 265, 195)],
+        ]);
+        $engine = new MpdfEngine;
+
+        $placements = $this->qrPlacements($engine->render($document), $document->pageSetup()->heightMm());
+        $pages = (int) $engine->lastPageCount();
+
+        $this->assertGreaterThan(1, $pages);
+        $this->assertCount($pages * 2, $placements);
+
+        for ($page = 1; $page <= $pages; $page++) {
+            $onPage = array_values(array_filter($placements, fn (array $p): bool => $p['page'] === $page));
+            $tops = array_column($onPage, 'top');
+            sort($tops);
+
+            $this->assertEqualsWithDelta(15.0, $tops[0], 0.3, "kop halaman {$page}");
+            $this->assertEqualsWithDelta(265.0, $tops[1], 0.3, "kaki halaman {$page}");
+            $this->assertEquals([195.0, 195.0], array_column($onPage, 'left'));
+        }
+    }
+
+    public function test_a_fixed_qr_does_not_change_how_the_body_flows(): void
+    {
+        $withQr = $this->qrDocument(['body' => [...$this->lines(60), $this->fixedQr('q', 25, 100, 150), ...$this->lines(60, 60)]]);
+        $without = $this->qrDocument(['body' => $this->lines(120)]);
+        $a = new MpdfEngine;
+        $b = new MpdfEngine;
+
+        $a->render($withQr);
+        $b->render($without);
+
+        $this->assertSame($b->lastPageCount(), $a->lastPageCount());
+    }
+
+    public function test_a_document_without_a_fixed_qr_still_renders_in_one_pass(): void
+    {
+        $document = $this->qrDocument(['body' => $this->lines(10)]);
+
+        $pdf = (new MpdfEngine)->render($document);
+
+        $this->assertStringStartsWith('%PDF-', $pdf);
+        $this->assertSame([], $this->qrPlacements($pdf, $document->pageSetup()->heightMm()));
     }
 }

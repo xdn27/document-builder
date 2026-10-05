@@ -14,6 +14,13 @@ sebagaimana dijelaskan di README ("API publik & versi").
   inline dengan benar.
 - Hasil cetak browser dan PDF mpdf kini sama: QR berukuran tepat sesuai `sizeMm` dan rata
   (`align`) di posisi yang sama. Diukur pada render 20 mm dan 60 mm.
+- Blok `qrcode` mode `fixed` kini dihormati mpdf. Sebelumnya mpdf mengabaikan `top`/`left` pada
+  `position:absolute` yang bersarang di dalam wadah lain (hanya elemen tingkat atas yang dihormati),
+  sehingga QR jatuh di posisi alur. `MpdfEngine` sekarang menggambar QR tetap sebagai elemen tingkat
+  atas: di kop/kaki ia ikut berulang di setiap halaman, dan di isi dokumen ia digambar tepat setelah
+  blok yang memuatnya sehingga jatuh di halaman yang sama dengan bloknya, seperti paginator browser.
+  Isi ditulis per potongan blok hanya bila ada QR tetap; dokumen tanpanya ditulis sekali jalan seperti
+  sebelumnya. Diukur terhadap cetak browser: posisi kop, isi, dan kaki sama hingga sekitar 0,1 mm.
 
 ### Diubah
 - Blok `qrcode` kini dirender sebagai `<img class="db-qrcode__img" src="data:image/svg+xml;base64,…">`
@@ -21,11 +28,6 @@ sebagaimana dijelaskan di README ("API publik & versi").
   berubah; SVG dari pembangkit apa pun dinormalkan lebih dulu (prolog dan DOCTYPE dibuang, `viewBox`
   diturunkan dari `width`/`height`, ukuran diset dalam mm). Aturan CSS `.db-qrcode__svg svg` diganti
   `.db-qrcode__img`. `MilonQrCodeGenerator` menghasilkan satu `<path>` yang jauh lebih ringkas.
-
-### Diketahui
-- Blok `qrcode` mode `fixed` belum dihormati mpdf: mpdf mengabaikan `top`/`left` pada elemen
-  `position:absolute` yang bersarang di dalam wadah lain (hanya elemen tingkat atas yang dihormati),
-  sehingga QR jatuh di posisi alur. Di cetak browser mode ini bekerja.
 
 ## [1.9.0] — 2026-09-29
 
