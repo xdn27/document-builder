@@ -67,8 +67,55 @@ class MediaBlockRendererTest extends TestCase
             RenderContext::sample()->withQr($this->echoingQrGenerator()),
         );
 
-        $this->assertStringContainsString('<svg data-payload="https://sekolah.id/verif/123">', $html);
-        $this->assertStringContainsString('width:25mm', $html);
+        $this->assertStringContainsString('width:25mm;height:25mm', $html);
+        $this->assertStringContainsString('data-payload="https://sekolah.id/verif/123"', $this->embeddedSvg($html));
+    }
+
+    public function test_qr_is_an_image_not_an_inline_svg_so_mpdf_and_the_browser_agree(): void
+    {
+        $generator = new class implements QrCodeGenerator
+        {
+            public function toSvg(string $payload, float $sizeMm): string
+            {
+                // Bentuk keluaran milon/barcode: prolog XML, DOCTYPE, dan width/height tanpa viewBox.
+                return '<?xml version="1.0" standalone="no"?>'."\n"
+                    .'<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">'."\n"
+                    .'<svg width="50" height="50" xmlns="http://www.w3.org/2000/svg"><rect width="2" height="2"/></svg>';
+            }
+        };
+
+        $html = $this->renderBlock(BlockType::QrCode, ['payload' => 'apa saja', 'sizeMm' => 40], RenderContext::sample()->withQr($generator));
+
+        $this->assertStringContainsString('<img class="db-qrcode__img" src="data:image/svg+xml;base64,', $html);
+        $this->assertStringNotContainsString('<svg', $html);
+        $this->assertStringNotContainsString('<?xml', $html);
+        $this->assertStringContainsString('width:40mm;height:40mm', $html);
+
+        $svg = $this->embeddedSvg($html);
+        $this->assertStringNotContainsString('<?xml', $svg);
+        $this->assertStringContainsString('viewBox="0 0 50 50"', $svg);
+        $this->assertStringContainsString('width="40mm"', $svg);
+    }
+
+    public function test_qr_size_changes_the_rendered_size(): void
+    {
+        $context = RenderContext::sample()->withQr($this->echoingQrGenerator());
+
+        $small = $this->renderBlock(BlockType::QrCode, ['payload' => 'x', 'sizeMm' => 20], $context);
+        $large = $this->renderBlock(BlockType::QrCode, ['payload' => 'x', 'sizeMm' => 60], $context);
+
+        $this->assertStringContainsString('width:20mm;height:20mm', $small);
+        $this->assertStringContainsString('width:60mm;height:60mm', $large);
+        $this->assertStringContainsString('width="20mm"', $this->embeddedSvg($small));
+        $this->assertStringContainsString('width="60mm"', $this->embeddedSvg($large));
+    }
+
+    /** SVG yang disisipkan blok QR lewat data URI pada <img>. */
+    private function embeddedSvg(string $html): string
+    {
+        $this->assertSame(1, preg_match('/src="data:image\/svg\+xml;base64,([^"]+)"/', $html, $m), 'QR harus berupa <img> data URI SVG');
+
+        return (string) base64_decode($m[1]);
     }
 
     public function test_qr_resolves_variables_in_the_payload(): void
@@ -79,7 +126,7 @@ class MediaBlockRendererTest extends TestCase
 
         $html = $this->renderBlock(BlockType::QrCode, ['payload' => 'verif/{{ letter.token }}'], $context);
 
-        $this->assertStringContainsString('data-payload="verif/XYZ"', $html);
+        $this->assertStringContainsString('data-payload="verif/XYZ"', $this->embeddedSvg($html));
     }
 
     public function test_qr_shows_a_marker_when_no_generator_is_bound(): void

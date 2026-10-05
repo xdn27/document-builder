@@ -298,10 +298,14 @@ body {
     max-width: 100%;
 }
 
-.db-qrcode__svg svg {
-    width: 100%;
-    height: auto;
-    display: block;
+/* display/vertical-align ditulis eksplisit supaya text-align wadah berlaku sama di browser,
+   mpdf, dan kanvas builder (reset CSS aplikasi sering membuat img display:block). */
+.db-qrcode__img {
+    display: inline;
+    vertical-align: top;
+    margin: 0;
+    padding: 0;
+    border: 0;
 }
 
 .db-signature__table {

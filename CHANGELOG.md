@@ -3,6 +3,30 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [1.9.1] — 2026-10-05
+
+### Diperbaiki
+- Blok `qrcode`: prop `sizeMm` ("Ukuran (mm)") sekarang benar-benar mengubah ukuran QR. SVG dari
+  `milon/barcode` hanya punya `width`/`height` tanpa `viewBox`, sehingga memperbesar elemennya
+  tidak menskalakan isinya (QR selalu sekitar 15 mm di cetak browser maupun PDF).
+- PDF (mpdf) tidak lagi mencetak `<?xml version="1.0" standalone="no"?>` sebagai teks di samping QR.
+  Penyebabnya prolog XML dan DOCTYPE pada SVG yang disisipkan inline; mpdf tidak memproses SVG
+  inline dengan benar.
+- Hasil cetak browser dan PDF mpdf kini sama: QR berukuran tepat sesuai `sizeMm` dan rata
+  (`align`) di posisi yang sama. Diukur pada render 20 mm dan 60 mm.
+
+### Diubah
+- Blok `qrcode` kini dirender sebagai `<img class="db-qrcode__img" src="data:image/svg+xml;base64,…">`
+  berukuran `sizeMm` × `sizeMm`, bukan `<svg>` inline. Kontrak `QrCodeGenerator::toSvg()` tidak
+  berubah; SVG dari pembangkit apa pun dinormalkan lebih dulu (prolog dan DOCTYPE dibuang, `viewBox`
+  diturunkan dari `width`/`height`, ukuran diset dalam mm). Aturan CSS `.db-qrcode__svg svg` diganti
+  `.db-qrcode__img`. `MilonQrCodeGenerator` menghasilkan satu `<path>` yang jauh lebih ringkas.
+
+### Diketahui
+- Blok `qrcode` mode `fixed` belum dihormati mpdf: mpdf mengabaikan `top`/`left` pada elemen
+  `position:absolute` yang bersarang di dalam wadah lain (hanya elemen tingkat atas yang dihormati),
+  sehingga QR jatuh di posisi alur. Di cetak browser mode ini bekerja.
+
 ## [1.9.0] — 2026-09-29
 
 ### Ditambahkan

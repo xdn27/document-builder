@@ -2,6 +2,7 @@
 
 namespace Maqiis\DocumentBuilder\Render\Block;
 
+use Maqiis\DocumentBuilder\Qr\QrSvg;
 use Maqiis\DocumentBuilder\Render\RenderContext;
 use Maqiis\DocumentBuilder\Schema\Block;
 use Maqiis\DocumentBuilder\Schema\BlockType;
@@ -26,27 +27,35 @@ final class QrCodeRenderer implements BlockRenderer
         }
 
         $size = (float) $block->prop('sizeMm');
-        $svg = $context->qr->toSvg($payload, $size);
+        $src = QrSvg::toDataUri($context->qr->toSvg($payload, $size), $size);
 
-        if ($svg === '') {
+        if ($src === '') {
             return $context->marker('Pembangkit QR tidak tersedia');
         }
 
+        // <img> berisi data URI, bukan <svg> inline: mpdf tidak memproses SVG inline
+        // dengan benar (ukuran diabaikan, prolog XML tercetak sebagai teks), sedangkan
+        // gambar SVG dihormati ukurannya di mpdf dan di browser.
+        $image = sprintf(
+            '<img class="db-qrcode__img" src="%s" alt="Kode QR" style="width:%s;height:%s">',
+            $src,
+            Mm::css($size),
+            Mm::css($size),
+        );
+
         if ((string) $block->prop('positionMode') === 'fixed') {
             return sprintf(
-                '<div class="db-qrcode__wrap db-qrcode__wrap--fixed" style="position:absolute;top:%s;left:%s"><span class="db-qrcode__svg" style="display:inline-block;width:%s">%s</span></div>',
+                '<div class="db-qrcode__wrap db-qrcode__wrap--fixed" style="position:absolute;top:%s;left:%s">%s</div>',
                 Mm::css((float) $block->prop('topMm')),
                 Mm::css((float) $block->prop('leftMm')),
-                Mm::css($size),
-                $svg,
+                $image,
             );
         }
 
         return sprintf(
-            '<div class="db-qrcode__wrap" style="text-align:%s"><span class="db-qrcode__svg" style="display:inline-block;width:%s">%s</span></div>',
+            '<div class="db-qrcode__wrap" style="text-align:%s">%s</div>',
             $context->escape((string) $block->prop('align')),
-            Mm::css($size),
-            $svg,
+            $image,
         );
     }
 
