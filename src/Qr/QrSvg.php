@@ -29,6 +29,29 @@ final class QrSvg
         return $normalized === '' ? '' : 'data:image/svg+xml;base64,'.base64_encode($normalized);
     }
 
+    /**
+     * SVG ternormalisasi untuk disisipkan inline ke HTML browser. Berbeda dari <img>, SVG
+     * inline tidak dibulatkan ke piksel CSS bulat oleh Chrome, jadi ukuran dan ketebalan
+     * modul QR sama persis dengan PDF. Kelas `db-qrcode__svg` menjadi penanda bagi
+     * QrEngineHtml untuk mengubahnya kembali menjadi gambar bagi mpdf.
+     */
+    public static function inline(string $svg, float $sizeMm): string
+    {
+        $normalized = self::normalize($svg, $sizeMm);
+
+        if ($normalized === '') {
+            return '';
+        }
+
+        return (string) preg_replace_callback(
+            '/<svg\b([^>]*)>/i',
+            static fn (array $m): string => '<svg class="db-qrcode__svg" style="display:inline-block;vertical-align:top"'
+                .preg_replace('/\s(?:class|style)\s*=\s*("[^"]*"|\'[^\']*\')/i', '', $m[1]).'>',
+            $normalized,
+            1,
+        );
+    }
+
     public static function normalize(string $svg, float $sizeMm): string
     {
         $svg = preg_replace(['/<\?xml.*?\?>/is', '/<!DOCTYPE[^>\[]*(?:\[.*?\])?\s*>/is', '/<!--.*?-->/s'], '', $svg) ?? '';

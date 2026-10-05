@@ -74,4 +74,18 @@ class QrSvgTest extends TestCase
         $this->assertStringStartsWith('data:image/svg+xml;base64,', $uri);
         $this->assertSame(QrSvg::normalize(self::MILON_STYLE, 30), base64_decode(substr($uri, strlen('data:image/svg+xml;base64,'))));
     }
+
+    public function test_the_inline_form_carries_the_marker_class_and_replaces_existing_class_and_style(): void
+    {
+        $svg = QrSvg::inline('<svg class="lama" style="color:red" width="10" height="10"><rect width="1" height="1"/></svg>', 30);
+
+        preg_match('/<svg\b[^>]*>/', $svg, $root);
+        $this->assertSame(1, substr_count($root[0], 'class='));
+        $this->assertSame(1, substr_count($root[0], 'style='));
+        $this->assertStringContainsString('class="db-qrcode__svg"', $root[0]);
+        $this->assertStringContainsString('display:inline-block', $root[0]);
+        $this->assertStringNotContainsString('lama', $svg);
+        $this->assertStringNotContainsString('color:red', $svg);
+        $this->assertSame('', QrSvg::inline('<div>bukan svg</div>', 30));
+    }
 }

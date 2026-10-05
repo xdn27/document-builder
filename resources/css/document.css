@@ -300,6 +300,12 @@ body {
 
 /* display/vertical-align ditulis eksplisit supaya text-align wadah berlaku sama di browser,
    mpdf, dan kanvas builder (reset CSS aplikasi sering membuat img display:block). */
+.db-qrcode__svg {
+    display: inline-block;
+    vertical-align: top;
+}
+
+/* Hanya dipakai mpdf: QrEngineHtml mengubah SVG inline menjadi <img> baginya. */
 .db-qrcode__img {
     display: inline;
     vertical-align: top;

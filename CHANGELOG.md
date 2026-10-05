@@ -3,6 +3,29 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [1.9.2] — 2026-10-05
+
+### Diperbaiki
+- Blok `qrcode`: ukuran, ketebalan modul, dan posisi QR di cetak browser kini sama dengan PDF
+  mpdf. Chrome membulatkan kotak `<img>` dan posisi `left`/`top` ke piksel CSS bulat (QR 20 mm
+  tercetak 20,11 mm dan bergeser sekitar 0,12 mm; modul tampak sedikit lebih tebal). Browser kini
+  menerima SVG inline (ukurannya tepat) dan, pada mode `fixed`, posisi lewat
+  `transform:translate(...)` yang tidak dibulatkan. Diukur pada render 600 dpi: kiri 30,01 mm,
+  atas 239,99 mm, ukuran 19,98 × 20,02 mm di cetak browser maupun mpdf (sebelumnya 29,89 / 239,99 /
+  20,11 × 20,11 mm di browser).
+
+### Diubah
+- `RenderedDocument::bodyHtmlForEngine()` baru, dan `headerHtmlForEngine()`/`footerHtmlForEngine()`
+  kini juga mengubah blok QR menjadi bentuk yang dipahami mpdf: SVG inline menjadi `<img>` data URI
+  dan posisi `fixed` ditulis sebagai `top`/`left`. `MpdfEngine` memakainya. HTML untuk browser
+  (`bodyHtml()`, `flowHtml()`, `fullHtml()`) berisi `<svg class="db-qrcode__svg">`, bukan `<img>`
+  seperti di 1.9.1.
+
+### Diketahui
+- Mode QR mengalir (`positionMode` `flow`) di cetak browser masih bisa bergeser hingga sekitar
+  0,17 mm dari PDF pada `align` kiri: Chrome membulatkan posisi kotak yang ditentukan tata letak
+  (bukan transform). Ukuran dan ketebalan sudah sama.
+
 ## [1.9.1] — 2026-10-05
 
 ### Diperbaiki

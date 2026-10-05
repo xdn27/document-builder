@@ -80,7 +80,7 @@ final class MpdfEngine implements PdfEngine
             $mpdf->SetHTMLFooter($this->zone($this->resolveImages($document->footerHtmlForEngine())));
 
             $mpdf->WriteHTML($document->resolvedCss(), HTMLParserMode::HEADER_CSS);
-            $this->writeBody($mpdf, $this->resolveImages($document->bodyHtml()) ?? '');
+            $this->writeBody($mpdf, $this->resolveImages($document->bodyHtmlForEngine()) ?? '');
 
             $bytes = $mpdf->Output('', 'S');
             $this->lastPageCount = $mpdf->page;

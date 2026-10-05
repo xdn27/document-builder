@@ -27,35 +27,34 @@ final class QrCodeRenderer implements BlockRenderer
         }
 
         $size = (float) $block->prop('sizeMm');
-        $src = QrSvg::toDataUri($context->qr->toSvg($payload, $size), $size);
+        $svg = QrSvg::inline($context->qr->toSvg($payload, $size), $size);
 
-        if ($src === '') {
+        if ($svg === '') {
             return $context->marker('Pembangkit QR tidak tersedia');
         }
 
-        // <img> berisi data URI, bukan <svg> inline: mpdf tidak memproses SVG inline
-        // dengan benar (ukuran diabaikan, prolog XML tercetak sebagai teks), sedangkan
-        // gambar SVG dihormati ukurannya di mpdf dan di browser.
-        $image = sprintf(
-            '<img class="db-qrcode__img" src="%s" alt="Kode QR" style="width:%s;height:%s">',
-            $src,
-            Mm::css($size),
-            Mm::css($size),
-        );
-
+        // SVG inline, bukan <img>: Chrome membulatkan kotak <img> ke piksel CSS bulat
+        // (QR 20 mm tercetak 20,11 mm dan bergeser), sedangkan SVG inline berukuran tepat.
+        // Posisi tetap memakai transform karena left/top pun dibulatkan. Untuk mpdf,
+        // bentuk ini diubah kembali oleh QrEngineHtml (RenderedDocument::*ForEngine()).
         if ((string) $block->prop('positionMode') === 'fixed') {
+            $top = Mm::css((float) $block->prop('topMm'));
+            $left = Mm::css((float) $block->prop('leftMm'));
+
             return sprintf(
-                '<div class="db-qrcode__wrap db-qrcode__wrap--fixed" style="position:absolute;top:%s;left:%s">%s</div>',
-                Mm::css((float) $block->prop('topMm')),
-                Mm::css((float) $block->prop('leftMm')),
-                $image,
+                '<div class="db-qrcode__wrap db-qrcode__wrap--fixed" style="position:absolute;top:0;left:0;transform:translate(%s,%s)" data-top="%s" data-left="%s">%s</div>',
+                $left,
+                $top,
+                $top,
+                $left,
+                $svg,
             );
         }
 
         return sprintf(
             '<div class="db-qrcode__wrap" style="text-align:%s">%s</div>',
             $context->escape((string) $block->prop('align')),
-            $image,
+            $svg,
         );
     }
 

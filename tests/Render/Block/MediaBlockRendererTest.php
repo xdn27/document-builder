@@ -67,11 +67,12 @@ class MediaBlockRendererTest extends TestCase
             RenderContext::sample()->withQr($this->echoingQrGenerator()),
         );
 
-        $this->assertStringContainsString('width:25mm;height:25mm', $html);
-        $this->assertStringContainsString('data-payload="https://sekolah.id/verif/123"', $this->embeddedSvg($html));
+        $this->assertStringContainsString('<svg class="db-qrcode__svg"', $html);
+        $this->assertStringContainsString('data-payload="https://sekolah.id/verif/123"', $html);
+        $this->assertStringContainsString('width="25mm" height="25mm"', $html);
     }
 
-    public function test_qr_is_an_image_not_an_inline_svg_so_mpdf_and_the_browser_agree(): void
+    public function test_qr_is_a_normalized_inline_svg_so_chrome_does_not_round_its_box(): void
     {
         $generator = new class implements QrCodeGenerator
         {
@@ -86,15 +87,12 @@ class MediaBlockRendererTest extends TestCase
 
         $html = $this->renderBlock(BlockType::QrCode, ['payload' => 'apa saja', 'sizeMm' => 40], RenderContext::sample()->withQr($generator));
 
-        $this->assertStringContainsString('<img class="db-qrcode__img" src="data:image/svg+xml;base64,', $html);
-        $this->assertStringNotContainsString('<svg', $html);
+        $this->assertStringContainsString('<svg class="db-qrcode__svg"', $html);
+        $this->assertStringNotContainsString('<img', $html);
         $this->assertStringNotContainsString('<?xml', $html);
-        $this->assertStringContainsString('width:40mm;height:40mm', $html);
-
-        $svg = $this->embeddedSvg($html);
-        $this->assertStringNotContainsString('<?xml', $svg);
-        $this->assertStringContainsString('viewBox="0 0 50 50"', $svg);
-        $this->assertStringContainsString('width="40mm"', $svg);
+        $this->assertStringNotContainsString('<!DOCTYPE', $html);
+        $this->assertStringContainsString('viewBox="0 0 50 50"', $html);
+        $this->assertStringContainsString('width="40mm" height="40mm"', $html);
     }
 
     public function test_qr_size_changes_the_rendered_size(): void
@@ -104,18 +102,8 @@ class MediaBlockRendererTest extends TestCase
         $small = $this->renderBlock(BlockType::QrCode, ['payload' => 'x', 'sizeMm' => 20], $context);
         $large = $this->renderBlock(BlockType::QrCode, ['payload' => 'x', 'sizeMm' => 60], $context);
 
-        $this->assertStringContainsString('width:20mm;height:20mm', $small);
-        $this->assertStringContainsString('width:60mm;height:60mm', $large);
-        $this->assertStringContainsString('width="20mm"', $this->embeddedSvg($small));
-        $this->assertStringContainsString('width="60mm"', $this->embeddedSvg($large));
-    }
-
-    /** SVG yang disisipkan blok QR lewat data URI pada <img>. */
-    private function embeddedSvg(string $html): string
-    {
-        $this->assertSame(1, preg_match('/src="data:image\/svg\+xml;base64,([^"]+)"/', $html, $m), 'QR harus berupa <img> data URI SVG');
-
-        return (string) base64_decode($m[1]);
+        $this->assertStringContainsString('width="20mm" height="20mm"', $small);
+        $this->assertStringContainsString('width="60mm" height="60mm"', $large);
     }
 
     public function test_qr_resolves_variables_in_the_payload(): void
@@ -126,7 +114,7 @@ class MediaBlockRendererTest extends TestCase
 
         $html = $this->renderBlock(BlockType::QrCode, ['payload' => 'verif/{{ letter.token }}'], $context);
 
-        $this->assertStringContainsString('data-payload="verif/XYZ"', $this->embeddedSvg($html));
+        $this->assertStringContainsString('data-payload="verif/XYZ"', $html);
     }
 
     public function test_qr_shows_a_marker_when_no_generator_is_bound(): void
@@ -157,9 +145,10 @@ class MediaBlockRendererTest extends TestCase
             RenderContext::sample()->withQr($this->echoingQrGenerator()),
         );
 
+        // Posisi lewat transform: Chrome membulatkan left/top ke piksel CSS bulat, transform tidak.
         $this->assertStringContainsString('position:absolute', $html);
-        $this->assertStringContainsString('top:40mm', $html);
-        $this->assertStringContainsString('left:15mm', $html);
+        $this->assertStringContainsString('transform:translate(15mm,40mm)', $html);
+        $this->assertStringContainsString('data-top="40mm" data-left="15mm"', $html);
     }
 
     public function test_qr_flow_position_never_renders_absolute_positioning(): void

@@ -4,6 +4,7 @@ namespace Maqiis\DocumentBuilder\Render;
 
 use Maqiis\DocumentBuilder\Asset\AssetLoader;
 use Maqiis\DocumentBuilder\Font\FontRegistry;
+use Maqiis\DocumentBuilder\Qr\QrEngineHtml;
 use Maqiis\DocumentBuilder\Schema\DocumentStyle;
 use Maqiis\DocumentBuilder\Schema\PageSetup;
 use Maqiis\DocumentBuilder\Schema\Watermark;
@@ -146,6 +147,11 @@ final class RenderedDocument
             .$css;
     }
 
+    public function bodyHtmlForEngine(): string
+    {
+        return QrEngineHtml::convert($this->bodyHtml);
+    }
+
     public function headerHtmlForEngine(): ?string
     {
         return $this->withEngineTokens($this->headerHtml);
@@ -209,14 +215,14 @@ final class RenderedDocument
             return null;
         }
 
-        return str_replace(
+        return QrEngineHtml::convert(str_replace(
             [
                 '<span class="'.VariableSyntax::PAGE_MARKER_CLASS.'"></span>',
                 '<span class="'.VariableSyntax::PAGES_MARKER_CLASS.'"></span>',
             ],
             ['{PAGENO}', '{nbpg}'],
             $html,
-        );
+        ));
     }
 
     private function zone(string $name, ?string $html, ZoneRepeat $repeat, float|string $height): string
