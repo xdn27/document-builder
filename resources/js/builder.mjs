@@ -326,7 +326,9 @@ export function sanitizeRichHtml(html) {
                 return `<${tag}>`;
             });
 
-        if (next === current) return next;
+        // Stabil: setiap "<" yang bukan awal tag yang diizinkan dijadikan teks, sehingga
+        // keluaran terbukti hanya memuat <b><i><u><br> apa pun bentuk masukannya.
+        if (next === current) return next.replace(/<(?!\/?(?:b|i|u)>|br>)/gi, '&lt;');
 
         current = next;
     }

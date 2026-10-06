@@ -3,6 +3,13 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [1.9.10] — 2026-10-06
+
+### Keamanan
+- `sanitizeRichHtml()` di `builder.mjs` kini menjadikan setiap `<` yang bukan awal tag yang
+  diizinkan sebagai teks (`&lt;`), sehingga keluarannya terbukti hanya memuat `<b><i><u><br>`
+  apa pun bentuk masukannya. Pengerasan atas sanitasi 1.9.8; tidak ada jalan pintas yang diketahui.
+
 ## [1.9.9] — 2026-10-06
 
 ### Keamanan

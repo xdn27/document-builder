@@ -351,6 +351,25 @@ test('sanitizeRichHtml membuang skrip, pengendali peristiwa, dan tag lain', () =
 });
 
 test('sanitizeRichHtml membiarkan teks biasa dan token variabel', () => {
-    assert.equal(sanitizeRichHtml('Nomor: {{ document.number }} & 3 < 5'), 'Nomor: {{ document.number }} & 3 < 5');
+    assert.equal(sanitizeRichHtml('Nomor: {{ document.number }} & 3 < 5'), 'Nomor: {{ document.number }} & 3 &lt; 5');
     assert.equal(sanitizeRichHtml(null), '');
+});
+
+test('sanitizeRichHtml tidak pernah mengeluarkan "<" selain awal tag yang diizinkan', () => {
+    const inputs = [
+        '<<b>script>alert(1)<<b>/script>',
+        '<b<img src=x onerror=alert(1)>',
+        '<![CDATA[<img src=x onerror=alert(1)>]]>',
+        '<!-- <img src=x onerror=alert(1)>',
+        '<\u0000img src=x onerror=alert(1)>',
+        '<b onmouseover=alert(1)>x</b><br/><u>y</u></i>',
+        '<%= x %><?php y ?><!doctype html>',
+    ];
+
+    for (const input of inputs) {
+        const out = sanitizeRichHtml(input);
+        const leftovers = out.replace(/<\/?(?:b|i|u)>|<br>/gi, '');
+
+        assert.equal(leftovers.includes('<'), false, `${input} → ${out}`);
+    }
 });
