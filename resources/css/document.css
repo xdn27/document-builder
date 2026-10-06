@@ -88,6 +88,15 @@ body {
     print-color-adjust: exact;
 }
 
+/* Jarak antarblok dijumlahkan, bukan digabung: "jarak sesudah" blok atas ditambah
+   "jarak sebelum" blok bawah. mpdf memang selalu menjumlahkannya (margin di dalam
+   pembungkus .doc-block tidak ia gabungkan), jadi browser yang menyesuaikan — tanpa ini
+   isi di cetak browser lebih rapat daripada PDF. Ditaruh di krom halaman karena mpdf
+   tidak mengenal flow-root. */
+.doc-block {
+    display: flow-root;
+}
+
 /* db:krom-halaman-selesai */
 
 .doc-block {
@@ -303,6 +312,7 @@ body {
 .db-qrcode__svg {
     display: inline-block;
     vertical-align: top;
+    overflow: visible;
 }
 
 /* Hanya dipakai mpdf: QrEngineHtml mengubah SVG inline menjadi <img> baginya. */
@@ -347,6 +357,16 @@ body {
 
 .db-signature__nip {
     font-size: 0.9em;
+}
+
+/* mpdf memberi <table> line-height bawaan 1.2 dan tidak mewariskan nilai .doc-root ke
+   dalamnya; tanpa aturan ini tiap baris tabel lebih rapat di PDF daripada di browser dan
+   seluruh isi di bawahnya ikut naik. Di browser nilainya sama dengan yang diwariskan. */
+.db-table__table,
+.db-signature__table,
+.db-letter-meta__table,
+.db-recipient__table {
+    line-height: var(--db-line-height);
 }
 
 /* Krom layar: bayangan dan jarak antar halaman hanya untuk dibaca di monitor. */

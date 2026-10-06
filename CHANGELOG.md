@@ -3,6 +3,32 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [1.9.3] — 2026-10-06
+
+### Diperbaiki
+- Tabel, tanda tangan, meta surat, dan penerima di PDF mpdf kini mengikuti `lineHeight` dokumen.
+  mpdf memberi `<table>` line-height bawaan 1.2 dan tidak mewariskan nilai `.doc-root` ke dalamnya,
+  sehingga tiap baris lebih rapat daripada di browser dan seluruh isi di bawahnya naik (11,7 mm di
+  akhir surat satu halaman dengan dua tabel dan tanda tangan). **PDF dokumen yang memuat blok
+  tersebut berubah**: isinya turun mengikuti tampilan builder dan cetak browser.
+- Blok `qrcode` berukuran pecahan piksel tidak lagi terpotong di cetak browser. Chrome memotong isi
+  `<svg>` pada kotak yang dibulatkan ke piksel CSS bulat: QR 25 mm tercetak 24,85 mm (kini
+  24,98 mm; mpdf 25,02 mm).
+
+### Diubah
+- Jarak antarblok di browser (builder dan cetak) kini dijumlahkan seperti di mpdf: "jarak sesudah"
+  blok atas ditambah "jarak sebelum" blok bawah, bukan diambil yang terbesar. **Tampilan builder dan
+  cetak berubah** di tempat dua blok bersebelahan sama-sama memiliki jarak itu: celahnya bertambah
+  sebesar nilai yang lebih kecil, dan template yang sangat padat bisa meluber ke halaman berikutnya
+  (PDF-nya sudah demikian sejak awal). Diukur pada surat satu halaman dan dokumen tiga halaman
+  dengan tabel terpotong: selisih posisi baris cetak browser vs mpdf paling banyak 0,6 mm, jumlah
+  halaman dan titik potong tabel sama.
+
+### Diketahui
+- Zona kaki belum konsisten antara cetak browser dan mpdf, dan ini sudah demikian sebelum rilis
+  ini: mpdf menempelkan isi kaki ke bawah kotaknya sedangkan browser ke atas, dan mpdf mengabaikan
+  "jarak sesudah" blok di dalam kaki.
+
 ## [1.9.2] — 2026-10-05
 
 ### Diperbaiki

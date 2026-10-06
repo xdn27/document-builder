@@ -45,7 +45,9 @@ final class QrSvg
 
         return (string) preg_replace_callback(
             '/<svg\b([^>]*)>/i',
-            static fn (array $m): string => '<svg class="db-qrcode__svg" style="display:inline-block;vertical-align:top"'
+            // overflow:visible: Chrome memotong isi <svg> pada kotak yang dibulatkan ke piksel CSS
+            // bulat, sehingga ukuran berpecahan kecil (25 mm = 94,49 px) kehilangan hingga 0,5 px.
+            static fn (array $m): string => '<svg class="db-qrcode__svg" style="display:inline-block;vertical-align:top;overflow:visible"'
                 .preg_replace('/\s(?:class|style)\s*=\s*("[^"]*"|\'[^\']*\')/i', '', $m[1]).'>',
             $normalized,
             1,

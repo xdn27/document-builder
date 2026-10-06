@@ -395,6 +395,68 @@ class MpdfEngineTest extends TestCase
         $this->assertEqualsWithDelta(10.0, $diffXMm, 0.1);
     }
 
+    public function test_the_mpdf_stylesheet_carries_no_flow_root(): void
+    {
+        $this->assertStringNotContainsString('flow-root', $this->documentFromFixture('surat-satu-halaman.json')->resolvedCss());
+    }
+
+    public function test_tables_follow_the_document_line_height_in_mpdf(): void
+    {
+        // mpdf memberi <table> line-height bawaan 1.2 dan tidak mewariskan nilai .doc-root,
+        // sehingga tiap baris tabel dan tanda tangan lebih rapat daripada di browser dan
+        // seluruh isi di bawahnya naik (11,7 mm pada surat satu halaman).
+        $template = SchemaValidator::validate([
+            'version' => 1,
+            'page' => ['size' => 'A4', 'orientation' => 'portrait', 'margin' => ['top' => 20, 'right' => 20, 'bottom' => 20, 'left' => 20]],
+            'style' => ['fontFamily' => 'tinos', 'fontSize' => 12, 'lineHeight' => 1.5],
+            'zones' => [
+                'body' => ['blocks' => [
+                    [
+                        'id' => 'tbl',
+                        'type' => 'table',
+                        'props' => [
+                            'columns' => [['label' => '', 'widthPercent' => 100, 'align' => 'left']],
+                            'rows' => [['Satu'], ['Dua']],
+                            'showHeader' => false,
+                            'border' => 'none',
+                        ],
+                    ],
+                    [
+                        'id' => 'sig',
+                        'type' => 'signature',
+                        'props' => ['columns' => [['place' => 'Kota', 'date' => 'hari ini', 'position' => 'Jabatan', 'name' => 'Nama', 'nip' => '1']]],
+                    ],
+                ]],
+                'footer' => ['blocks' => []],
+            ],
+        ]);
+
+        $pdf = (new MpdfEngine)->render((new HtmlRenderer)->render($template, RenderContext::sample()));
+
+        $y = static function (string $text) use ($pdf): float {
+            $needle = preg_quote(implode('', array_map(static fn (string $c): string => "\x00".$c, str_split($text))), '/');
+            preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $pdf, $streams);
+
+            foreach ($streams[1] as $raw) {
+                $decomp = @gzuncompress($raw);
+
+                if ($decomp !== false && preg_match('/([0-9.]+)\s+([0-9.]+)\s+Td\s*\('.$needle.'/s', $decomp, $m)) {
+                    return (float) $m[2] * 25.4 / 72;
+                }
+            }
+
+            return 0.0;
+        };
+
+        $line = 12 * 1.5 * 25.4 / 72; // 6,35 mm
+
+        // Baris tabel: satu baris teks + padding sel 1 mm atas dan bawah.
+        $this->assertGreaterThan(0.0, $y('Satu'));
+        $this->assertEqualsWithDelta($line + 2.0, $y('Satu') - $y('Dua'), 0.1);
+        // Tanda tangan: sel tanpa padding, jarak tempat/tanggal ke jabatan satu baris teks.
+        $this->assertEqualsWithDelta($line, $y('Kota') - $y('Jabatan'), 0.1);
+    }
+
     public function test_signature_image_scales_and_offsets_in_mpdf_without_displacing_adjacent_text(): void
     {
         $createDoc = static function (float $scalePercent, float $offsetYMm, float $offsetXMm) {

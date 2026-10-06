@@ -46,6 +46,21 @@ class AssetLoaderTest extends TestCase
         }
     }
 
+    /**
+     * mpdf menjumlahkan jarak sesudah sebuah blok dengan jarak sebelum blok berikutnya
+     * (margin di dalam pembungkus .doc-block tidak pernah ia gabungkan), sedangkan browser
+     * menggabungkannya menjadi yang terbesar. flow-root membuat browser ikut menjumlahkan,
+     * dan hanya boleh ada di krom halaman: mpdf tidak mengenal nilai display itu.
+     */
+    public function test_blocks_do_not_collapse_margins_with_their_neighbours_in_the_browser(): void
+    {
+        $css = AssetLoader::css();
+
+        $this->assertSame(1, preg_match('/db:krom-halaman-mulai.*?db:krom-halaman-selesai/s', $css, $chrome));
+        $this->assertMatchesRegularExpression('/\.doc-block\s*\{[^}]*display:\s*flow-root\s*;/', $chrome[0]);
+        $this->assertStringNotContainsString('flow-root', str_replace($chrome[0], '', $css));
+    }
+
     public function test_stylesheet_styles_every_block_class(): void
     {
         $css = AssetLoader::css();

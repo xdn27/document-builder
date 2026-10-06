@@ -88,4 +88,14 @@ class QrSvgTest extends TestCase
         $this->assertStringNotContainsString('color:red', $svg);
         $this->assertSame('', QrSvg::inline('<div>bukan svg</div>', 30));
     }
+
+    public function test_the_inline_form_is_not_clipped_to_whole_pixels(): void
+    {
+        // Chrome memotong isi <svg> pada kotak yang dibulatkan ke piksel CSS bulat: QR 25 mm
+        // (94,49 px) tercetak 24,85 mm. overflow:visible meniadakan pemotongan itu.
+        $svg = QrSvg::inline('<svg width="10" height="10"><rect width="1" height="1"/></svg>', 25);
+
+        preg_match('/<svg\b[^>]*>/', $svg, $root);
+        $this->assertStringContainsString('overflow:visible', $root[0]);
+    }
 }
