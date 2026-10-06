@@ -71,9 +71,14 @@ final class SignatureRenderer implements BlockRenderer
             $first = false;
         }
 
+        $tableStyle = $this->tableStyle($align, (float) $block->prop('widthPercent'));
+
+        // Jarak sebelum ada di pembungkus, bukan di <table>: mpdf membuang margin-top tabel
+        // yang jatuh di puncak halaman, sedangkan margin-top <div> tetap dihormati.
         return sprintf(
-            '<table class="db-signature__table" style="%s"><tbody>%s</tbody></table>',
-            $this->tableStyle($align, (float) $block->prop('widthPercent'), (float) $block->prop('spaceBeforeMm')),
+            '<div class="db-signature__wrap" style="margin-top:%s"><table class="db-signature__table"%s><tbody>%s</tbody></table></div>',
+            Mm::css((float) $block->prop('spaceBeforeMm')),
+            $tableStyle === '' ? '' : ' style="'.$tableStyle.'"',
             $html,
         );
     }
@@ -86,12 +91,10 @@ final class SignatureRenderer implements BlockRenderer
      * align:space-between selalu selebar penuh karena tujuannya memang menyebar
      * kolom, bukan memposisikan satu blok.
      */
-    private function tableStyle(string $align, float $widthPercent, float $marginTopMm): string
+    private function tableStyle(string $align, float $widthPercent): string
     {
-        $style = 'margin-top:'.Mm::css($marginTopMm);
-
         if ($widthPercent >= 100.0 || $align === 'space-between') {
-            return $style;
+            return '';
         }
 
         $margin = match ($align) {
@@ -100,7 +103,7 @@ final class SignatureRenderer implements BlockRenderer
             default => 'margin-left:auto;margin-right:auto',
         };
 
-        return sprintf('width:%s%%;%s;%s', $this->number($widthPercent), $margin, $style);
+        return sprintf('width:%s%%;%s', $this->number($widthPercent), $margin);
     }
 
     /**

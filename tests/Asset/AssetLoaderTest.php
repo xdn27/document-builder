@@ -61,6 +61,22 @@ class AssetLoaderTest extends TestCase
         $this->assertStringNotContainsString('flow-root', str_replace($chrome[0], '', $css));
     }
 
+    /**
+     * mpdf tidak mengenal selektor atribut: aturan `[data-break-inside='avoid']` tidak pernah
+     * berlaku di PDF dan blok tanda tangan terpotong antarhalaman. Larangan memotong harus
+     * lewat kelas. Paragraf ikut dilarang karena paginator browser pun memindahkannya utuh.
+     */
+    public function test_keep_together_rules_use_class_selectors_mpdf_understands(): void
+    {
+        $css = (string) preg_replace('#/\*.*?\*/#s', '', AssetLoader::css());
+
+        $this->assertStringNotContainsString('[data-break-inside', $css, 'Selektor atribut tidak berlaku di mpdf.');
+
+        foreach (['doc-block--avoid', 'db-paragraph'] as $class) {
+            $this->assertMatchesRegularExpression('/\.'.$class.'\b[^{]*\{[^}]*page-break-inside:\s*avoid\s*;/', $css, $class);
+        }
+    }
+
     public function test_stylesheet_styles_every_block_class(): void
     {
         $css = AssetLoader::css();

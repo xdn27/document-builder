@@ -36,7 +36,16 @@ class SignatureBlockRendererTest extends TestCase
         // tambahan pada elemen <table>.
         $html = $this->renderBlock(BlockType::Signature, $this->oneColumn(['align' => 'right']));
 
-        $this->assertMatchesRegularExpression('/<table class="db-signature__table" style="margin-top:[^"]*">/', $html);
+        $this->assertStringContainsString('<table class="db-signature__table">', $html);
+    }
+
+    public function test_space_before_sits_on_a_wrapper_so_it_survives_a_page_break_in_mpdf(): void
+    {
+        // mpdf membuang margin-top <table> yang jatuh di puncak halaman, tetapi menghormati
+        // margin-top <div> pembungkusnya (margin-collapse: separate di .doc-root).
+        $html = $this->renderBlock(BlockType::Signature, $this->oneColumn(['spaceBeforeMm' => 8]));
+
+        $this->assertStringContainsString('<div class="db-signature__wrap" style="margin-top:8mm"><table class="db-signature__table">', $html);
     }
 
     public function test_text_align_can_be_set_independently_from_block_align(): void
@@ -96,7 +105,7 @@ class SignatureBlockRendererTest extends TestCase
             'widthPercent' => 50.0,
         ]);
 
-        $this->assertMatchesRegularExpression('/<table class="db-signature__table" style="margin-top:[^"]*">/', $html);
+        $this->assertStringContainsString('<table class="db-signature__table">', $html);
         $this->assertStringNotContainsString('margin-left:auto', $html);
     }
 

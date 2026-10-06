@@ -424,6 +424,37 @@ class MpdfEngineTest extends TestCase
         $this->assertEqualsWithDelta(5.0, $this->textY($lifted, 'Kaki1') - $this->textY($flush, 'Kaki1'), 0.1);
     }
 
+    public function test_a_signature_at_the_page_edge_moves_whole_to_the_next_page_in_mpdf(): void
+    {
+        // 26 paragraf menyisakan ruang lebih kecil dari blok tanda tangan: paginator browser
+        // memindahkannya utuh; mpdf dulu memotongnya di antara jabatan dan nama.
+        $pdf = (new MpdfEngine)->render($this->flowDocument([
+            ...$this->fillerParagraphs(26),
+            ['id' => 'sig', 'type' => 'signature', 'props' => [
+                'columns' => [['place' => 'Kota', 'date' => 'hari ini', 'position' => 'Jabatan', 'name' => 'Penanda', 'nip' => '1']],
+                'spaceMm' => 25,
+                'spaceBeforeMm' => 4,
+            ]],
+        ]));
+
+        // Dari tepi bawah kertas: baris yang lebih bawah di halaman yang sama bernilai lebih kecil.
+        $this->assertGreaterThan($this->textY($pdf, 'Jabatan'), $this->textY($pdf, 'Kota'));
+        $this->assertGreaterThan($this->textY($pdf, 'Penanda'), $this->textY($pdf, 'Jabatan'));
+        // Jarak sebelum (4 mm) tetap ada di puncak halaman, seperti di browser.
+        $this->assertEqualsWithDelta($this->textY($pdf, 'Isi1') - 4.0, $this->textY($pdf, 'Kota'), 0.3);
+    }
+
+    public function test_a_paragraph_at_the_page_edge_moves_whole_to_the_next_page_in_mpdf(): void
+    {
+        $pdf = (new MpdfEngine)->render($this->flowDocument([
+            ...$this->fillerParagraphs(26),
+            $this->spacedParagraph('long', 'Awalan<br>'.str_repeat('lorem ipsum dolor sit amet consectetur ', 40).'<br>Akhiran', 6, 2),
+        ]));
+
+        $this->assertGreaterThan($this->textY($pdf, 'Akhiran'), $this->textY($pdf, 'Awalan'));
+        $this->assertEqualsWithDelta($this->textY($pdf, 'Isi1') - 6.0, $this->textY($pdf, 'Awalan'), 0.3);
+    }
+
     public function test_the_mpdf_stylesheet_carries_no_flow_root(): void
     {
         $this->assertStringNotContainsString('flow-root', $this->documentFromFixture('surat-satu-halaman.json')->resolvedCss());
@@ -577,6 +608,25 @@ class MpdfEngineTest extends TestCase
     private function spacedParagraph(string $id, string $text, float $beforeMm, float $afterMm): array
     {
         return ['id' => $id, 'type' => 'paragraph', 'props' => ['text' => $text, 'spaceBeforeMm' => $beforeMm, 'spaceAfterMm' => $afterMm]];
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function fillerParagraphs(int $count): array
+    {
+        return array_map(fn (int $i): array => $this->spacedParagraph("b{$i}", "Isi{$i} paragraf", 0, 2), range(1, $count));
+    }
+
+    /** @param  list<array<string, mixed>>  $bodyBlocks */
+    private function flowDocument(array $bodyBlocks): RenderedDocument
+    {
+        $template = SchemaValidator::validate([
+            'version' => 1,
+            'page' => ['size' => 'A4', 'orientation' => 'portrait', 'margin' => ['top' => 20, 'right' => 20, 'bottom' => 20, 'left' => 20]],
+            'style' => ['fontFamily' => 'tinos', 'fontSize' => 12, 'lineHeight' => 1.5],
+            'zones' => ['body' => ['blocks' => $bodyBlocks], 'footer' => ['blocks' => []]],
+        ]);
+
+        return (new HtmlRenderer)->render($template, RenderContext::sample());
     }
 
     /** @param  list<array<string, mixed>>  $footerBlocks */

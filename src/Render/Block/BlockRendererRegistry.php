@@ -57,11 +57,16 @@ final class BlockRendererRegistry
             ? $context->marker(sprintf('Blok tidak dikenal: %s', $block->type->value))
             : $renderer->render($block, $context);
 
+        $avoid = in_array($block->type, self::AVOID_BREAK, true);
+
+        // data-break-inside dibaca paginator browser; kelas doc-block--avoid untuk mpdf, yang
+        // tidak mengenal selektor atribut.
         return sprintf(
-            '<div class="doc-block db-%s" data-block-id="%s" data-break-inside="%s">%s</div>',
+            '<div class="doc-block db-%s%s" data-block-id="%s" data-break-inside="%s">%s</div>',
             $context->escape($block->type->value),
+            $avoid ? ' doc-block--avoid' : '',
             $context->escape($block->id),
-            in_array($block->type, self::AVOID_BREAK, true) ? 'avoid' : 'auto',
+            $avoid ? 'avoid' : 'auto',
             $inner,
         );
     }

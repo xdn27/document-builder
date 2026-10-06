@@ -103,8 +103,16 @@ body {
     break-inside: auto;
 }
 
-.doc-block[data-break-inside='avoid'] {
+/* Lewat kelas, bukan selektor atribut data-break-inside: mpdf tidak mengenal selektor
+   atribut, sehingga blok seperti tanda tangan dulu terpotong antarhalaman di PDF. */
+.doc-block--avoid {
     break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+/* Paginator browser memindahkan paragraf utuh ke halaman berikutnya; mpdf harus sama.
+   Paragraf yang lebih tinggi dari satu halaman tetap dipecah mpdf seperti biasa. */
+.db-paragraph {
     page-break-inside: avoid;
 }
 
@@ -322,6 +330,10 @@ body {
     margin: 0;
     padding: 0;
     border: 0;
+}
+
+.db-signature__wrap {
+    display: block;
 }
 
 .db-signature__table {

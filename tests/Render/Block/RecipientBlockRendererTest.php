@@ -31,7 +31,7 @@ class RecipientBlockRendererTest extends TestCase
             'itemText' => '{{ recipient.position }}<br>{{ recipient.name }}',
         ], $this->context(self::TWO_RECIPIENTS));
 
-        $this->assertStringContainsString('class="doc-block db-recipient"', $html);
+        $this->assertStringContainsString('class="doc-block db-recipient doc-block--avoid"', $html);
         $this->assertSame(2, substr_count($html, 'db-recipient__item'));
         $this->assertStringContainsString('Kepala Sekolah<br>Bapak Ahmad', $html);
         $this->assertStringContainsString('Bendahara<br>Ibu Siti', $html);

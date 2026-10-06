@@ -3,6 +3,26 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [1.9.5] — 2026-10-06
+
+### Diperbaiki
+- Blok yang tidak boleh terpotong (tanda tangan, kop, gambar, QR, meta surat, penerima, dan
+  lainnya) kini pindah utuh ke halaman berikutnya di PDF mpdf, sama seperti di cetak browser.
+  Larangan itu ditulis dengan selektor atribut `[data-break-inside='avoid']`, yang tidak dikenal
+  mpdf, sehingga tidak pernah berlaku: tanda tangan di batas halaman terpotong di antara jabatan
+  dan nama. Pembungkus blok kini membawa kelas `doc-block--avoid`.
+- Paragraf di batas halaman pindah utuh di PDF mpdf, seperti yang dilakukan paginator browser
+  (sebelumnya mpdf memecahnya per baris). Paragraf yang lebih tinggi dari satu halaman tetap
+  dipecah.
+- "Jarak sebelum" blok tanda tangan tidak lagi hilang di PDF mpdf saat blok itu jatuh di puncak
+  halaman.
+
+### Diubah
+- HTML blok tanda tangan: tabelnya dibungkus `<div class="db-signature__wrap">` yang membawa
+  `margin-top`; `<table class="db-signature__table">` tidak lagi memilikinya.
+- **PDF berubah** untuk dokumen multi-halaman yang paragraf atau tanda tangannya jatuh di batas
+  halaman: titik potongnya kini sama dengan builder dan cetak browser.
+
 ## [1.9.4] — 2026-10-06
 
 ### Diperbaiki
