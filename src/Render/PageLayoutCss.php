@@ -33,6 +33,9 @@ final class PageLayoutCss
             '--db-font-family' => FontRegistry::cssStack($style->fontFamily),
             '--db-font-size' => rtrim(rtrim(number_format($style->fontSize, 2, '.', ''), '0'), '.').'pt',
             '--db-line-height' => (string) $style->lineHeight,
+            // Tinggi baris absolut huruf dokumen, untuk baris yang hurufnya lebih kecil tetapi
+            // harus tetap setinggi baris biasa (lihat .db-signature__cell).
+            '--db-line-height-abs' => rtrim(rtrim(number_format($style->fontSize * $style->lineHeight, 3, '.', ''), '0'), '.').'pt',
         ];
     }
 

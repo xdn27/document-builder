@@ -277,7 +277,7 @@ class MpdfEngineTest extends TestCase
         preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $pdf, $streams);
         $found = false;
         foreach ($streams[1] as $raw) {
-            $decomp = @gzuncompress($raw);
+            $decomp = self::plainText(@gzuncompress($raw));
             if ($decomp !== false && str_contains($decomp, 'Do')) {
                 if (preg_match('/([0-9.-]+)\s+([0-9.-]+)\s+([0-9.-]+)\s+([0-9.-]+)\s+([0-9.-]+)\s+([0-9.-]+)\s+cm/', $decomp, $m)) {
                     $yPt = (float) $m[6];
@@ -313,7 +313,7 @@ class MpdfEngineTest extends TestCase
         $getY = static function (string $pdf): float {
             preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $pdf, $streams);
             foreach ($streams[1] as $raw) {
-                $decomp = @gzuncompress($raw);
+                $decomp = self::plainText(@gzuncompress($raw));
                 if ($decomp !== false && preg_match('/([0-9.]+)\s+([0-9.]+)\s+Td\s*\(\x00I/s', $decomp, $m)) {
                     return (float) $m[2];
                 }
@@ -367,7 +367,7 @@ class MpdfEngineTest extends TestCase
         $getCoords = static function (string $pdf): array {
             preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $pdf, $streams);
             foreach ($streams[1] as $raw) {
-                $decomp = @gzuncompress($raw);
+                $decomp = self::plainText(@gzuncompress($raw));
                 if ($decomp !== false && preg_match('/([0-9.]+)\s+([0-9.]+)\s+Td\s*\(\x00T\x00e\x00k\x00s/s', $decomp, $m)) {
                     return [(float) $m[1], (float) $m[2]];
                 }
@@ -632,7 +632,7 @@ class MpdfEngineTest extends TestCase
         preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $pdf, $streams);
 
         foreach ($streams[1] as $raw) {
-            $decomp = @gzuncompress($raw);
+            $decomp = self::plainText(@gzuncompress($raw));
 
             if ($decomp !== false) {
                 $this->assertLessThanOrEqual(1, substr_count($decomp, '('.$needle));
@@ -640,6 +640,98 @@ class MpdfEngineTest extends TestCase
         }
 
         $this->assertSame(2, $this->textCount($pdf, 'Kakisurat'));
+    }
+
+    public function test_mpdf_applies_font_kerning_like_the_browser(): void
+    {
+        $document = $this->flowDocument([$this->spacedParagraph('p', 'Isi', 0, 0)]);
+        $config = (new \ReflectionMethod(MpdfEngine::class, 'mpdfConfig'))->invoke(new MpdfEngine, $document, $document->pageSetup(), 0.0, 0.0);
+
+        $this->assertTrue($config['useKerning']);
+    }
+
+    public function test_mpdf_justifies_with_word_spacing_only_like_the_browser(): void
+    {
+        $document = $this->flowDocument([$this->spacedParagraph('p', 'Isi', 0, 0)]);
+        $config = (new \ReflectionMethod(MpdfEngine::class, 'mpdfConfig'))->invoke(new MpdfEngine, $document, $document->pageSetup(), 0.0, 0.0);
+
+        $this->assertSame([1.0, 0, 0, 0], [$config['jSWord'], $config['jSmaxChar'], $config['jSmaxCharLast'], $config['jSmaxWordLast']]);
+    }
+
+    public function test_list_markers_get_a_fixed_width_in_mpdf(): void
+    {
+        // Di browser penanda butir adalah inline-block 6 mm; mpdf tidak mengenalnya, jadi engine
+        // menambahkan pengisi supaya teks butir mulai di tempat yang sama.
+        $engine = new MpdfEngine;
+        $pdf = $engine->render($this->flowDocument([['id' => 'l', 'type' => 'list', 'props' => ['style' => 'number', 'items' => [
+            ['text' => 'satu', 'level' => 0],
+        ]]]]));
+
+        $html = (new \ReflectionMethod(MpdfEngine::class, 'listMarkersForEngine'))->invoke(
+            $engine,
+            '<span class="db-list__marker">1.</span><span class="db-list__text">satu</span>',
+            new \Mpdf\Mpdf(['tempDir' => sys_get_temp_dir().'/mpdf']),
+            $this->flowDocument([$this->spacedParagraph('p', 'Isi', 0, 0)]),
+        );
+
+        $this->assertNotSame('', $pdf);
+        $this->assertSame(1, preg_match('#</span><img src="data:image/gif;base64,[^"]+" style="width:([0-9.]+)mm;height:0.1mm" alt="" />#', $html, $m));
+        // "1." pada 12pt selebar ±3,6 mm → pengisi ±2,4 mm.
+        $this->assertEqualsWithDelta(2.4, (float) $m[1], 0.3);
+        $this->assertStringContainsString('width: 6mm', \Maqiis\DocumentBuilder\Asset\AssetLoader::css());
+    }
+
+    public function test_the_header_is_drawn_once_on_a_page_opened_by_a_moved_block(): void
+    {
+        // Larangan potong milik mpdf menulis blok dua kali, dan kop halaman baru ikut tertulis
+        // dua kali. Engine kini memindahkan blok sendiri, jadi kop hanya tertulis sekali.
+        $template = SchemaValidator::validate([
+            'version' => 1,
+            'page' => ['size' => 'A4', 'orientation' => 'portrait', 'margin' => ['top' => 20, 'right' => 20, 'bottom' => 20, 'left' => 20]],
+            'style' => ['fontFamily' => 'tinos', 'fontSize' => 12, 'lineHeight' => 1.5],
+            'zones' => [
+                'header' => ['repeat' => 'all', 'height' => 'auto', 'blocks' => [$this->spacedParagraph('h', 'Kopsurat', 0, 4)]],
+                'body' => ['blocks' => [
+                    ...$this->fillerParagraphs(26),
+                    $this->spacedParagraph('long', 'Awalan<br>'.str_repeat('lorem ipsum dolor sit amet consectetur ', 40).'<br>Akhiran', 0, 2),
+                ]],
+                'footer' => ['blocks' => []],
+            ],
+        ]);
+
+        $pdf = (new MpdfEngine)->render((new HtmlRenderer)->render($template, RenderContext::sample()));
+        $needle = '('.implode('', array_map(static fn (string $c): string => "\x00".$c, str_split('Kopsurat')));
+        preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $pdf, $streams);
+        $perPage = [];
+
+        foreach ($streams[1] as $raw) {
+            $decomp = self::plainText(@gzuncompress($raw));
+
+            if ($decomp !== false && str_contains($decomp, $needle)) {
+                $perPage[] = substr_count($decomp, $needle);
+            }
+        }
+
+        $this->assertSame([1, 1], $perPage);
+        // Paragraf panjang pindah utuh ke halaman kedua.
+        $this->assertGreaterThan($this->textY($pdf, 'Akhiran'), $this->textY($pdf, 'Awalan'));
+    }
+
+    public function test_blocks_stay_whole_even_when_the_header_holds_a_fixed_qr_code(): void
+    {
+        $document = $this->qrDocument([
+            'header' => [$this->paragraph('kop', 'Kop surat'), $this->fixedQr('qh', 12, 15, 195)],
+            'body' => [
+                ...$this->lines(24),
+                $this->spacedParagraph('long', 'Awalan<br>'.str_repeat('lorem ipsum dolor sit amet consectetur ', 40).'<br>Akhiran', 0, 2),
+            ],
+        ]);
+        $engine = new MpdfEngine;
+        $pdf = $engine->render($document);
+
+        $this->assertSame(2, $engine->lastPageCount());
+        $this->assertGreaterThan($this->textY($pdf, 'Akhiran'), $this->textY($pdf, 'Awalan'));
+        $this->assertCount(2, $this->qrPlacements($pdf, $document->pageSetup()->heightMm()));
     }
 
     public function test_the_mpdf_stylesheet_carries_no_flow_root(): void
@@ -685,7 +777,7 @@ class MpdfEngineTest extends TestCase
             preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $pdf, $streams);
 
             foreach ($streams[1] as $raw) {
-                $decomp = @gzuncompress($raw);
+                $decomp = self::plainText(@gzuncompress($raw));
 
                 if ($decomp !== false && preg_match('/([0-9.]+)\s+([0-9.]+)\s+Td\s*\('.$needle.'/s', $decomp, $m)) {
                     return (float) $m[2] * 25.4 / 72;
@@ -746,7 +838,7 @@ class MpdfEngineTest extends TestCase
             $imgCoords = [0.0, 0.0, 0.0, 0.0];
             $txtCoords = [];
             foreach ($streams[1] as $raw) {
-                $decomp = @gzuncompress($raw);
+                $decomp = self::plainText(@gzuncompress($raw));
                 if ($decomp === false) {
                     continue;
                 }
@@ -843,7 +935,7 @@ class MpdfEngineTest extends TestCase
         preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $pdf, $streams);
 
         foreach ($streams[1] as $raw) {
-            $decomp = @gzuncompress($raw);
+            $decomp = self::plainText(@gzuncompress($raw));
 
             if ($decomp === false || ! preg_match('/([0-9.]+)\s+([0-9.]+)\s+Td\s*\('.$needle.'/s', $decomp, $m, PREG_OFFSET_CAPTURE)) {
                 continue;
@@ -875,11 +967,35 @@ class MpdfEngineTest extends TestCase
         $count = 0;
 
         foreach ($streams[1] as $raw) {
-            $decomp = @gzuncompress($raw);
+            $decomp = self::plainText(@gzuncompress($raw));
             $count += $decomp !== false && str_contains($decomp, '('.$needle) ? 1 : 0;
         }
 
         return $count;
+    }
+
+    /**
+     * Dengan kerning aktif mpdf menulis teks sebagai larik `[(po) -20 (tongan)] TJ`. Larik itu
+     * digabung kembali menjadi satu `(potongan) Tj` supaya teks bisa dicari utuh.
+     */
+    private static function plainText(string|false $stream): string|false
+    {
+        if ($stream === false) {
+            return false;
+        }
+
+        // `Td 0 Tc 0 Tw [` → `Td [`: pengaturan spasi di antara posisi dan teksnya dibuang.
+        $stream = (string) preg_replace('/Td\s+[-0-9.]+ Tc [-0-9.]+ Tw\s*\[/', 'Td [', $stream);
+
+        return (string) preg_replace_callback(
+            '/\[((?:\((?:\\\\.|[^\\\\)])*\)|[-0-9.\s])*)\]\s*TJ/s',
+            static function (array $m): string {
+                preg_match_all('/\(((?:\\\\.|[^\\\\)])*)\)/s', $m[1], $parts);
+
+                return '('.implode('', $parts[1]).') Tj';
+            },
+            $stream,
+        );
     }
 
     private function qrGenerator(): QrCodeGenerator
@@ -949,7 +1065,7 @@ class MpdfEngineTest extends TestCase
         $placements = [];
 
         foreach ($streams[1] as $raw) {
-            $content = @gzuncompress($raw);
+            $content = self::plainText(@gzuncompress($raw));
 
             if ($content === false || ! str_contains($content, 'BT')) {
                 continue;

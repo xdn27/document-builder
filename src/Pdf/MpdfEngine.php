@@ -42,6 +42,11 @@ final class MpdfEngine implements PdfEngine
 
     private const NO_KEEP_TOGETHER_CSS = '.doc-block--avoid,.db-paragraph,.db-list__item{page-break-inside:auto}';
 
+    /** Lebar kotak penanda butir daftar; harus sama dengan `.db-list__marker { width }` di document.css. */
+    private const LIST_MARKER_WIDTH_MM = 6.0;
+
+    private const TRANSPARENT_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
     private ?int $lastPageCount = null;
 
     public function __construct(
@@ -101,6 +106,11 @@ final class MpdfEngine implements PdfEngine
                 $mpdf->showWatermarkText = true;
             }
 
+            $this->matchBrowserUnderline($mpdf, $document);
+
+            $headerHtml = $this->listMarkersForEngine($headerHtml, $mpdf, $document);
+            $footerHtml = $this->listMarkersForEngine($footerHtml, $mpdf, $document);
+
             $perPageZones = $document->headerRepeat() !== ZoneRepeat::All || $document->footerRepeat() !== ZoneRepeat::All;
 
             if (! $perPageZones) {
@@ -114,19 +124,14 @@ final class MpdfEngine implements PdfEngine
                 $this->definePerPageZones($mpdf, $document, $headerHtml, $footerHtml, $headerReserve, $footerReserve);
             }
 
-            // mpdf menjaga blok tetap utuh dengan menulisnya dua kali (uji coba lalu ulang), dan
-            // kop halaman baru ikut tertulis dua kali. Untuk kop biasa keduanya bertumpuk persis,
-            // tetapi kotak berposisi tetap di dalam kop tercetak ganda dengan spasi berbeda.
-            // Dokumen seperti itu melepas larangan potong: paragraf dan tanda tangan boleh terpecah.
-            if ($perPageZones || ($headerHtml !== null && str_contains($headerHtml, self::FIXED_QR_CLASS))) {
-                $mpdf->WriteHTML(self::NO_KEEP_TOGETHER_CSS, HTMLParserMode::HEADER_CSS);
-            }
+            // Larangan potong ditangani writeBody(); mekanisme milik mpdf dimatikan.
+            $mpdf->WriteHTML(self::NO_KEEP_TOGETHER_CSS, HTMLParserMode::HEADER_CSS);
 
             // Paginator browser menghitung "jarak sesudah" blok terakhir saat memutuskan blok itu
             // muat di halaman atau tidak; mpdf hanya menghitungnya bila berupa padding.
-            $this->writeBody($mpdf, $this->withBottomMarginsAsPadding(
-                $this->tableHeadsForEngine($this->resolveImages($document->bodyHtmlForEngine()) ?? ''),
-            ));
+            $this->writeBody($mpdf, $this->withBottomMarginsAsPadding($this->tableHeadsForEngine(
+                $this->listMarkersForEngine($this->resolveImages($document->bodyHtmlForEngine()), $mpdf, $document) ?? '',
+            )), $document);
 
             $bytes = $mpdf->Output('', 'S');
             $this->lastPageCount = $mpdf->page;
@@ -218,6 +223,16 @@ final class MpdfEngine implements PdfEngine
             'tempDir' => $this->tempDir ?? sys_get_temp_dir().'/mpdf',
             'default_font' => FontRegistry::mpdfFamily($document->style()->fontFamily),
             'default_font_size' => $document->style()->fontSize,
+            // Browser menerapkan kerning font; tanpa ini lebar baris di mpdf berselisih sampai
+            // 2 mm pada teks tebal huruf besar, sehingga teks rata tengah dan kanan bergeser.
+            'useKerning' => true,
+            // Perataan kanan-kiri hanya lewat spasi antarkata, seperti browser. Bawaan mpdf membagi
+            // 60% sisa ruang ke spasi antarhuruf (kata di tengah baris bergeser ±1 mm) dan ikut
+            // meregangkan baris terakhir paragraf bila hampir penuh.
+            'jSWord' => 1.0,
+            'jSmaxChar' => 0,
+            'jSmaxCharLast' => 0,
+            'jSmaxWordLast' => 0,
         ];
 
         $customFont = FontRegistry::mpdfFontFiles($document->style()->fontFamily);
@@ -337,14 +352,19 @@ final class MpdfEngine implements PdfEngine
     }
 
     /**
-     * Isi dokumen ditulis per potongan blok. QR berposisi tetap digambar di tingkat atas
-     * tepat setelah potongan yang memuat bloknya, sehingga jatuh di halaman yang sama
-     * dengan bloknya, seperti paginator browser. Tanpa QR tetap, isi ditulis sekali jalan
-     * persis seperti sebelumnya.
+     * Isi dokumen ditulis blok demi blok, dan engine sendiri yang memutuskan kapan sebuah blok
+     * pindah ke halaman berikutnya — sama seperti paginator browser:
+     *
+     * - Blok yang tidak boleh terpotong (tanda tangan, paragraf, butir daftar, dst.) diukur
+     *   dulu; bila tidak muat di sisa halaman, halaman baru dibuka sebelum blok itu ditulis.
+     *   Larangan potong milik mpdf (page-break-inside) sengaja tidak dipakai: mpdf
+     *   menerapkannya dengan menulis blok dua kali, dan kop halaman baru ikut tertulis dua kali.
+     * - QR berposisi tetap digambar di tingkat atas tepat setelah bloknya, sehingga jatuh di
+     *   halaman yang sama dengan bloknya.
      */
-    private function writeBody(Mpdf $mpdf, string $html): void
+    private function writeBody(Mpdf $mpdf, string $html, RenderedDocument $document): void
     {
-        $blocks = str_contains($html, self::FIXED_QR_CLASS) ? $this->topLevelBlocks($html) : null;
+        $blocks = $this->topLevelBlocks($html);
 
         if ($blocks === null) {
             $this->writeFlow($mpdf, $html);
@@ -352,25 +372,63 @@ final class MpdfEngine implements PdfEngine
             return;
         }
 
-        $chunk = '';
+        $probe = null;
 
-        foreach ($blocks as $block) {
-            [$flow, $fixed] = $this->pullFixedQr($block);
-            $chunk .= $flow;
+        foreach ($this->unbreakableUnits($blocks) as [$unit, $keepTogether]) {
+            [$flow, $fixed] = $this->pullFixedQr($unit);
 
-            if ($fixed === []) {
-                continue;
+            if ($keepTogether && $mpdf->page > 0) {
+                $probe ??= $this->probe($document);
+                $height = (float) $probe->_getHtmlHeight('<div class="doc-root"><div class="doc-flow">'.$this->zoneFlow($flow).'</div></div>');
+
+                // Halaman yang masih kosong tidak diganti: blok yang lebih tinggi dari satu
+                // halaman tetap ditulis dan dipecah mpdf seperti biasa.
+                if ($mpdf->y + $height > $mpdf->PageBreakTrigger + 0.01 && $mpdf->y > $mpdf->tMargin + 0.01) {
+                    $mpdf->AddPage();
+                }
             }
 
-            $this->writeFlow($mpdf, $chunk);
-            $chunk = '';
+            $this->writeFlow($mpdf, $flow);
 
             foreach ($fixed as $qr) {
                 $mpdf->WriteHTML($qr, HTMLParserMode::HTML_BODY);
             }
         }
+    }
 
-        $this->writeFlow($mpdf, $chunk);
+    /**
+     * Blok tingkat atas dipecah menjadi satuan yang ditulis sekaligus, masing-masing dengan
+     * tanda apakah ia harus utuh di satu halaman. Blok daftar dipecah per butir: paginator
+     * browser memindahkan butir satu per satu, tidak pernah memotong di tengah butir.
+     *
+     * @param  list<string>  $blocks
+     * @return list<array{0: string, 1: bool}>
+     */
+    private function unbreakableUnits(array $blocks): array
+    {
+        $units = [];
+
+        foreach ($blocks as $block) {
+            if (! preg_match('#^\s*<div class="doc-block ([^"]*)"[^>]*>#', $block, $open)) {
+                $units[] = [$block, false];
+
+                continue;
+            }
+
+            $classes = explode(' ', $open[1]);
+
+            if (in_array('db-list', $classes, true) && preg_match_all('#<div class="db-list__item".*?</div>#s', $block, $items) > 1) {
+                foreach ($items[0] as $item) {
+                    $units[] = [$open[0].$item.'</div>', true];
+                }
+
+                continue;
+            }
+
+            $units[] = [$block, array_intersect(['doc-block--avoid', 'db-paragraph', 'db-list'], $classes) !== []];
+        }
+
+        return $units;
     }
 
     private function writeFlow(Mpdf $mpdf, string $html): void
@@ -484,6 +542,62 @@ final class MpdfEngine implements PdfEngine
     }
 
     /**
+     * Ketebalan garis bawah disamakan dengan browser. Keduanya memakai metrik font, tetapi
+     * browser membulatkannya ke bawah ke piksel CSS utuh (minimal 1 px), sedangkan mpdf
+     * memakainya apa adanya: pada huruf tebal 12pt garis mpdf 0,40 mm, browser 0,27 mm.
+     * Metrik font di mpdf diganti dengan nilai hasil pembulatan itu pada ukuran huruf dokumen.
+     */
+    private function matchBrowserUnderline(Mpdf $mpdf, RenderedDocument $document): void
+    {
+        $family = FontRegistry::mpdfFamily($document->style()->fontFamily);
+        $sizePt = $document->style()->fontSize;
+        $sizePx = $sizePt * 96 / 72;
+
+        foreach (['', 'B', 'I', 'BI'] as $style) {
+            try {
+                $mpdf->AddFont($family, $style);
+            } catch (Throwable) {
+                continue;
+            }
+
+            $key = $family.$style;
+
+            if (! isset($mpdf->fonts[$key]['ut']) || ! $mpdf->fonts[$key]['ut']) {
+                continue;
+            }
+
+            $pixels = max(1.0, floor($mpdf->fonts[$key]['ut'] / 1000 * $sizePx));
+            $mpdf->fonts[$key]['ut'] = $pixels * 0.75 / $sizePt * 1000;
+        }
+    }
+
+    /**
+     * Penanda butir daftar berlebar tetap. Di browser penandanya `inline-block` selebar
+     * LIST_MARKER_WIDTH_MM; mpdf tidak mengenal inline-block, sehingga teks butir menempel ke
+     * penanda dan pemenggalan barisnya berbeda. Lebar penanda diukur dengan metrik font mpdf
+     * lalu sisanya diisi gambar transparan selebar itu.
+     */
+    private function listMarkersForEngine(?string $html, Mpdf $mpdf, RenderedDocument $document): ?string
+    {
+        if ($html === null || ! str_contains($html, 'db-list__marker')) {
+            return $html;
+        }
+
+        $mpdf->SetFont(FontRegistry::mpdfFamily($document->style()->fontFamily), '', $document->style()->fontSize);
+
+        return preg_replace_callback(
+            '#<span class="db-list__marker">([^<]*)</span>#',
+            static function (array $m) use ($mpdf): string {
+                $text = html_entity_decode($m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                $gap = max(0.0, self::LIST_MARKER_WIDTH_MM - (float) $mpdf->GetStringWidth($text));
+
+                return $m[0].sprintf('<img src="%s" style="width:%smm;height:0.1mm" alt="" />', self::TRANSPARENT_PIXEL, round($gap, 3));
+            },
+            $html,
+        ) ?? $html;
+    }
+
+    /**
      * mpdf mengulang <thead> di setiap halaman tanpa syarat. Tabel yang tidak meminta
      * pengulangan (data-repeat-header="0") diberi baris kepalanya sebagai <tbody> biasa,
      * supaya hanya muncul sekali seperti di browser.
@@ -530,12 +644,18 @@ final class MpdfEngine implements PdfEngine
         [$flow] = $this->pullFixedQr($html);
 
         try {
-            $probe = new Mpdf($this->mpdfConfig($document, $document->pageSetup(), 0.0, 0.0));
-            $probe->WriteHTML($document->resolvedCss(), HTMLParserMode::HEADER_CSS);
-
-            return (float) $probe->_getHtmlHeight('<div class="doc-root">'.$this->zoneFlow($flow).'</div>');
+            return (float) $this->probe($document)->_getHtmlHeight('<div class="doc-root">'.$this->zoneFlow($flow).'</div>');
         } catch (Throwable) {
             return null;
         }
+    }
+
+    /** Instance mpdf tersendiri untuk mengukur tinggi HTML tanpa menyentuh dokumen yang sedang disusun. */
+    private function probe(RenderedDocument $document): Mpdf
+    {
+        $probe = new Mpdf($this->mpdfConfig($document, $document->pageSetup(), 0.0, 0.0));
+        $probe->WriteHTML($document->resolvedCss().self::NO_KEEP_TOGETHER_CSS, HTMLParserMode::HEADER_CSS);
+
+        return $probe;
     }
 }

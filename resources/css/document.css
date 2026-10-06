@@ -97,6 +97,14 @@ body {
     display: flow-root;
 }
 
+/* Garis bawah memakai ketebalan dan posisi dari metrik font, seperti mpdf. Bawaan browser
+   menggambar garis setebal satu piksel di posisi pilihannya sendiri: pada huruf tebal 12pt garisnya
+   0,15 mm lebih tipis dan 0,3 mm lebih rendah daripada di PDF. */
+.doc-root * {
+    text-decoration-thickness: from-font;
+    text-underline-position: from-font;
+}
+
 /* db:krom-halaman-selesai */
 
 .doc-block {
@@ -346,6 +354,10 @@ body {
 .db-signature__cell {
     vertical-align: top;
     padding: 0;
+    /* Tinggi baris absolut: baris NIP berhuruf 0.9em tetap setinggi baris biasa di browser
+       (mengikuti huruf sel), tetapi mpdf menghitungnya dari huruf terbesar di baris itu
+       sehingga NIP naik ±0,5 mm. */
+    line-height: var(--db-line-height-abs);
 }
 
 /* Ruang tanda tangan: tinggi murni dari atribut height, tanpa padding atau baris

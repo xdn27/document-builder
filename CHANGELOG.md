@@ -3,6 +3,37 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [1.9.7] — 2026-10-06
+
+Lanjutan sapuan cetak browser vs PDF mpdf, kini pada 74 dokumen: jumlah halaman dan halaman tiap
+kata sama di semuanya, selisih posisi kata paling banyak 0,3 mm vertikal maupun horizontal.
+**PDF berubah** di semua butir; builder dan cetak browser hanya berubah di butir garis bawah.
+
+### Diperbaiki
+- **Blok utuh dipindahkan oleh engine sendiri.** `MpdfEngine` mengukur tiap blok yang tidak boleh
+  terpotong (tanda tangan, paragraf, butir daftar, dst.) dan membuka halaman baru sebelum
+  menulisnya bila tidak muat. Larangan potong milik mpdf tidak dipakai lagi: ia menulis blok dua
+  kali, sehingga kop halaman baru ikut tertulis dua kali. Batasan 1.9.6 hilang: dokumen yang
+  kopnya memuat QR berposisi tetap atau yang zonanya tidak tampil di semua halaman kembali
+  menjaga paragraf, butir daftar, dan tanda tangan tetap utuh.
+- **Penanda butir daftar** (`1.`, `•`) kini selebar 6 mm di mpdf seperti di browser; sebelumnya
+  teks butir menempel ke penanda dan pemenggalan barisnya berbeda.
+- **Kerning font** diaktifkan di mpdf. Tanpa itu lebar baris berselisih sampai 2 mm pada teks
+  tebal huruf besar, sehingga teks rata tengah dan rata kanan bergeser ±1 mm.
+- **Perataan kanan-kiri** di mpdf hanya lewat spasi antarkata, seperti browser. Bawaan mpdf
+  membagi sebagian sisa ruang ke spasi antarhuruf (kata di tengah baris bergeser ±1 mm) dan ikut
+  meregangkan baris terakhir paragraf.
+- **Baris NIP** di blok tanda tangan tidak lagi 0,4–0,5 mm lebih tinggi di mpdf.
+- **Garis bawah**: posisinya kini dari metrik font di browser (sama dengan mpdf), dan ketebalannya
+  di mpdf mengikuti pembulatan browser. **Builder dan cetak browser berubah**: garis bawah naik
+  ±0,3 mm.
+
+### Diketahui
+- Ketebalan garis bawah masih bisa berselisih hingga 0,08 mm pada ukuran huruf selain ukuran
+  dokumen, dan posisinya hingga 0,25 mm pada teks tebal.
+- `spaceAfterMm` pada blok `list` tidak dipakai `ListRenderer`: jarak sesudah daftar tidak muncul
+  di browser maupun PDF.
+
 ## [1.9.6] — 2026-10-06
 
 Hasil sapuan menyeluruh cetak browser vs PDF mpdf pada 60 dokumen (fixture, dokumen terbit, dan
