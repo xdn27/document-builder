@@ -395,6 +395,35 @@ class MpdfEngineTest extends TestCase
         $this->assertEqualsWithDelta(10.0, $diffXMm, 0.1);
     }
 
+    public function test_a_fixed_height_footer_is_filled_from_the_top_in_mpdf(): void
+    {
+        // mpdf menempelkan isi kaki ke bawah kotaknya; browser mengisinya dari atas. Dengan
+        // kotak 15 mm lebih tinggi, baris pertama harus naik tepat 15 mm.
+        $blocks = [$this->spacedParagraph('f1', 'Kaki1', 0, 2), $this->spacedParagraph('f2', 'Kaki2', 3, 0)];
+        $low = (new MpdfEngine)->render($this->footerDocument($blocks, 25));
+        $high = (new MpdfEngine)->render($this->footerDocument($blocks, 40));
+
+        $this->assertGreaterThan(0.0, $this->textY($low, 'Kaki1'));
+        $this->assertEqualsWithDelta(15.0, $this->textY($high, 'Kaki1') - $this->textY($low, 'Kaki1'), 0.1);
+        // Jarak sesudah (2) dan jarak sebelum (3) dijumlahkan seperti di isi dokumen.
+        $this->assertEqualsWithDelta(self::LINE_MM + 5.0, $this->textY($low, 'Kaki1') - $this->textY($low, 'Kaki2'), 0.1);
+    }
+
+    public function test_an_auto_height_footer_honours_space_after_in_mpdf(): void
+    {
+        // Di kaki, mpdf membuang margin-bottom setiap blok kecuali kotaknya diberi tinggi.
+        $between = (new MpdfEngine)->render($this->footerDocument(
+            [$this->spacedParagraph('f1', 'Kaki1', 0, 2), $this->spacedParagraph('f2', 'Kaki2', 3, 0)],
+            'auto',
+        ));
+        $this->assertEqualsWithDelta(self::LINE_MM + 5.0, $this->textY($between, 'Kaki1') - $this->textY($between, 'Kaki2'), 0.1);
+
+        $flush = (new MpdfEngine)->render($this->footerDocument([$this->spacedParagraph('f1', 'Kaki1', 0, 0)], 'auto'));
+        $lifted = (new MpdfEngine)->render($this->footerDocument([$this->spacedParagraph('f1', 'Kaki1', 0, 5)], 'auto'));
+        // Jarak sesudah blok terakhir mengangkat isi kaki dari tepi bawahnya.
+        $this->assertEqualsWithDelta(5.0, $this->textY($lifted, 'Kaki1') - $this->textY($flush, 'Kaki1'), 0.1);
+    }
+
     public function test_the_mpdf_stylesheet_carries_no_flow_root(): void
     {
         $this->assertStringNotContainsString('flow-root', $this->documentFromFixture('surat-satu-halaman.json')->resolvedCss());
@@ -541,6 +570,66 @@ class MpdfEngineTest extends TestCase
     // mpdf hanya menghormati top/left pada `position:absolute` tingkat atas, jadi MpdfEngine
     // menggambar QR tetap di luar pembungkus alur (lihat MpdfEngine::writeBody()/zone()).
 
+    /** Tinggi satu baris teks 12pt dengan line-height 1.5. */
+    private const LINE_MM = 12 * 1.5 * 25.4 / 72;
+
+    /** @return array<string, mixed> */
+    private function spacedParagraph(string $id, string $text, float $beforeMm, float $afterMm): array
+    {
+        return ['id' => $id, 'type' => 'paragraph', 'props' => ['text' => $text, 'spaceBeforeMm' => $beforeMm, 'spaceAfterMm' => $afterMm]];
+    }
+
+    /** @param  list<array<string, mixed>>  $footerBlocks */
+    private function footerDocument(array $footerBlocks, float|string $footerHeight): RenderedDocument
+    {
+        $template = SchemaValidator::validate([
+            'version' => 1,
+            'page' => ['size' => 'A4', 'orientation' => 'portrait', 'margin' => ['top' => 20, 'right' => 20, 'bottom' => 20, 'left' => 20]],
+            'style' => ['fontFamily' => 'tinos', 'fontSize' => 12, 'lineHeight' => 1.5],
+            'zones' => [
+                'body' => ['blocks' => [$this->spacedParagraph('b1', 'Isi', 0, 0)]],
+                'footer' => ['repeat' => 'all', 'height' => $footerHeight, 'blocks' => $footerBlocks],
+            ],
+        ]);
+
+        return (new HtmlRenderer)->render($template, RenderContext::sample());
+    }
+
+    /**
+     * Posisi garis dasar teks dari tepi bawah kertas (mm), atau 0.0 bila tidak ditemukan.
+     * mpdf menulis kop/kaki di dalam `q … cm … Q` yang menggeser isinya, jadi translasi yang
+     * masih terbuka di depan teks ikut dijumlahkan.
+     */
+    private function textY(string $pdf, string $text): float
+    {
+        $needle = preg_quote(implode('', array_map(static fn (string $c): string => "\x00".$c, str_split($text))), '/');
+        preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $pdf, $streams);
+
+        foreach ($streams[1] as $raw) {
+            $decomp = @gzuncompress($raw);
+
+            if ($decomp === false || ! preg_match('/([0-9.]+)\s+([0-9.]+)\s+Td\s*\('.$needle.'/s', $decomp, $m, PREG_OFFSET_CAPTURE)) {
+                continue;
+            }
+
+            $shifts = [0.0];
+
+            foreach (preg_split('/\r?\n/', substr($decomp, 0, $m[0][1])) ?: [] as $line) {
+                if ($line === 'q') {
+                    $shifts[] = 0.0;
+                } elseif (preg_match('/^Q\b/', $line) && count($shifts) > 1) {
+                    array_pop($shifts);
+                } elseif (preg_match('/^1\.0+ 0\.0+ 0\.0+ 1\.0+ [-0-9.]+ ([-0-9.]+) cm$/', $line, $cm)) {
+                    $shifts[count($shifts) - 1] += (float) $cm[1];
+                }
+            }
+
+            return ((float) $m[2][0] + array_sum($shifts)) * 25.4 / 72;
+        }
+
+        return 0.0;
+    }
+
     private function qrGenerator(): QrCodeGenerator
     {
         return new class implements QrCodeGenerator
@@ -671,6 +760,29 @@ class MpdfEngineTest extends TestCase
             $this->assertEqualsWithDelta(15.0, $tops[0], 0.3, "kop halaman {$page}");
             $this->assertEqualsWithDelta(265.0, $tops[1], 0.3, "kaki halaman {$page}");
             $this->assertEquals([195.0, 195.0], array_column($onPage, 'left'));
+        }
+    }
+
+    public function test_header_and_footer_text_survives_next_to_a_fixed_qr_code(): void
+    {
+        // Blok berposisi tetap mengosongkan buffer kop/kaki mpdf: teks zona yang sama hilang.
+        $document = $this->qrDocument([
+            'header' => [$this->paragraph('kop', 'Kop surat'), $this->fixedQr('qh', 12, 15, 195)],
+            'body' => $this->lines(3),
+            'footer' => [$this->paragraph('kaki', 'Kaki surat'), $this->fixedQr('qf', 12, 265, 195)],
+        ]);
+        $plain = $this->qrDocument([
+            'header' => [$this->paragraph('kop', 'Kop surat')],
+            'body' => $this->lines(3),
+            'footer' => [$this->paragraph('kaki', 'Kaki surat')],
+        ]);
+
+        $withQr = (new MpdfEngine)->render($document);
+        $without = (new MpdfEngine)->render($plain);
+
+        foreach (['Kop surat', 'Kaki surat'] as $text) {
+            $this->assertGreaterThan(0.0, $this->textY($without, $text));
+            $this->assertEqualsWithDelta($this->textY($without, $text), $this->textY($withQr, $text), 0.3, $text);
         }
     }
 

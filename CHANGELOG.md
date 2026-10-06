@@ -3,6 +3,30 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [1.9.4] — 2026-10-06
+
+### Diperbaiki
+- Zona kaki di PDF mpdf kini sama dengan cetak browser:
+  - Kaki bertinggi tetap diisi dari atas kotaknya, bukan menempel ke tepi bawah (kaki 25 mm berisi
+    dua baris sebelumnya 9,5 mm lebih rendah di PDF).
+  - "Jarak sesudah" blok di dalam kaki dihormati. mpdf membuang `margin-bottom` selama menulis
+    kaki; `MpdfEngine` kini menuliskannya sebagai `padding-bottom`.
+- Teks kop atau kaki tidak lagi hilang di PDF mpdf bila zona yang sama memuat blok `qrcode`
+  berposisi `fixed` (regresi sejak 1.9.1): blok berposisi tetap mengosongkan buffer kop/kaki
+  mpdf. Isi mengalir zona itu kini ikut ditulis sebagai kotak berposisi tetap.
+- Diukur terhadap cetak Chrome pada sembilan konfigurasi (tinggi tetap dan `auto`, dengan dan
+  tanpa QR tetap, satu dan tiga halaman): posisi baris kop dan kaki berselisih paling banyak
+  0,3 mm.
+
+### Diubah
+- **PDF berubah** untuk template yang kakinya bertinggi tetap atau memuat blok dengan "jarak
+  sesudah": isi kaki pindah ke posisi yang sama dengan builder dan cetak browser.
+
+### Diketahui
+- Kop atau kaki bertinggi `auto` masih memakai ruang cadangan tetap di mpdf (35 mm dan 12 mm),
+  sehingga jumlah baris isi per halaman bisa berbeda dari cetak browser. Tetapkan tinggi zona di
+  schema untuk hasil yang sama.
+
 ## [1.9.3] — 2026-10-06
 
 ### Diperbaiki

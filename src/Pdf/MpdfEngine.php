@@ -6,6 +6,7 @@ use Maqiis\DocumentBuilder\Font\FontRegistry;
 use Maqiis\DocumentBuilder\Media\ImageResolver;
 use Maqiis\DocumentBuilder\Render\RenderedDocument;
 use Maqiis\DocumentBuilder\Schema\PageSetup;
+use Maqiis\DocumentBuilder\Support\Mm;
 use Mpdf\Config\ConfigVariables;
 use Mpdf\Config\FontVariables;
 use Mpdf\HTMLParserMode;
@@ -76,8 +77,8 @@ final class MpdfEngine implements PdfEngine
                 ? $this->neutralizeTopBleed($document->headerHtmlForEngine())
                 : $document->headerHtmlForEngine();
 
-            $mpdf->SetHTMLHeader($this->zone($this->resolveImages($headerHtml)));
-            $mpdf->SetHTMLFooter($this->zone($this->resolveImages($document->footerHtmlForEngine())));
+            $mpdf->SetHTMLHeader($this->headerZone($this->resolveImages($headerHtml), $document));
+            $mpdf->SetHTMLFooter($this->footerZone($this->resolveImages($document->footerHtmlForEngine()), $document));
 
             $mpdf->WriteHTML($document->resolvedCss(), HTMLParserMode::HEADER_CSS);
             $this->writeBody($mpdf, $this->resolveImages($document->bodyHtmlForEngine()) ?? '');
@@ -191,8 +192,12 @@ final class MpdfEngine implements PdfEngine
      * top/left pada elemen `position:absolute` yang tidak bersarang di dalam wadah lain.
      * Di sana koordinatnya relatif ke tepi halaman, sama seperti `.doc-page` di browser,
      * dan ikut berulang di setiap halaman yang memakai kop/kaki itu.
+     *
+     * Blok berposisi tetap mengosongkan buffer kop/kaki mpdf (WriteFixedPosHTML), sehingga
+     * isi mengalir yang ditulis sebelumnya hilang. Karena itu, begitu ada QR tetap, isi
+     * mengalirnya sendiri ikut ditulis sebagai kotak berposisi tetap di tempat kop semestinya.
      */
-    private function zone(?string $html): string
+    private function headerZone(?string $html, RenderedDocument $document): string
     {
         if ($html === null) {
             return '';
@@ -200,7 +205,72 @@ final class MpdfEngine implements PdfEngine
 
         [$flow, $fixed] = $this->pullFixedQr($html);
 
-        return '<div class="doc-root">'.$flow.'</div>'.implode('', $fixed);
+        if ($fixed === []) {
+            return '<div class="doc-root">'.$flow.'</div>';
+        }
+
+        $top = $document->headerBleedsToTop() ? 0.0 : $document->pageSetup()->margin->top;
+
+        return $this->pinnedZone($flow, 'top:'.Mm::css($top), $document->pageSetup()).implode('', $fixed);
+    }
+
+    /**
+     * mpdf menulis kaki dari bawah batas halaman lalu menggesernya ke atas setinggi isinya.
+     * Akibatnya dua hal berbeda dari browser, dan keduanya diluruskan di sini:
+     *
+     * - Kaki bertinggi tetap menempel ke tepi bawah kotaknya, padahal browser mengisinya dari
+     *   atas. Kaki seperti itu ditulis sebagai kotak berposisi tetap yang mulai di tepi atas
+     *   kotak kaki.
+     * - margin-bottom setiap blok dibuang (lihat withBottomMarginsAsPadding()).
+     */
+    private function footerZone(?string $html, RenderedDocument $document): string
+    {
+        if ($html === null) {
+            return '';
+        }
+
+        [$flow, $fixed] = $this->pullFixedQr($html);
+        $page = $document->pageSetup();
+        $height = $document->footerHeight();
+
+        if (! is_string($height)) {
+            $top = $page->heightMm() - $page->margin->bottom - $height;
+
+            return $this->pinnedZone($flow, 'top:'.Mm::css($top), $page).implode('', $fixed);
+        }
+
+        if ($fixed !== []) {
+            return $this->pinnedZone($flow, 'bottom:'.Mm::css($page->margin->bottom), $page).implode('', $fixed);
+        }
+
+        return '<div class="doc-root">'.$this->withBottomMarginsAsPadding($flow).'</div>';
+    }
+
+    /** Isi zona sebagai kotak berposisi tetap selebar area isi; $anchor berupa `top:…` atau `bottom:…`. */
+    private function pinnedZone(string $flow, string $anchor, PageSetup $page): string
+    {
+        return sprintf(
+            '<div style="position:absolute;left:%s;width:%s;%s"><div class="doc-root">%s</div></div>',
+            Mm::css($page->margin->left),
+            Mm::css($page->contentWidthMm()),
+            $anchor,
+            $this->withBottomMarginsAsPadding($flow),
+        );
+    }
+
+    /**
+     * Di kaki dan di dalam kotak berposisi tetap, mpdf membuang margin-bottom setiap blok
+     * (Mpdf::finishFlowingBlock() melewatinya selama InFooter), tetapi padding-bottom tetap
+     * dihormati. Untuk <p> dan <div> tanpa garis tepi maupun latar, keduanya menghasilkan
+     * jarak yang sama. Nilai negatif dibiarkan: padding tidak bisa negatif.
+     */
+    private function withBottomMarginsAsPadding(string $html): string
+    {
+        return preg_replace_callback(
+            '/<(?:p|div)\b[^>]*>/i',
+            static fn (array $m): string => (string) preg_replace('/\bmargin-bottom:(\s*[0-9][0-9.]*mm)/', 'padding-bottom:$1', $m[0]),
+            $html,
+        ) ?? $html;
     }
 
     /**
