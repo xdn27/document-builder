@@ -6,6 +6,7 @@ use Maqiis\DocumentBuilder\Font\FontRegistry;
 use Maqiis\DocumentBuilder\Media\ImageResolver;
 use Maqiis\DocumentBuilder\Render\RenderedDocument;
 use Maqiis\DocumentBuilder\Schema\PageSetup;
+use Maqiis\DocumentBuilder\Schema\ZoneRepeat;
 use Maqiis\DocumentBuilder\Support\Mm;
 use Mpdf\Config\ConfigVariables;
 use Mpdf\Config\FontVariables;
@@ -26,6 +27,20 @@ final class MpdfEngine implements PdfEngine
 {
     /** Kelas pembungkus QR berposisi tetap; lihat QrCodeRenderer. */
     private const FIXED_QR_CLASS = 'db-qrcode__wrap db-qrcode__wrap--fixed';
+
+    /** Nama isi kop per halaman di mpdf, dipilih lewat @page (header: html_<nama>). */
+    private const FIRST_PAGE_NAME = 'dbfirst';
+
+    private const REST_PAGES_NAME = 'dbrest';
+
+    /**
+     * Luapan yang masih dianggap muat di dasar halaman. Sama dengan FIT_TOLERANCE_MM milik
+     * paginator browser (paginate-dom.mjs): tata letak kedua mesin berselisih sepersekian
+     * milimeter, jadi batasnya harus sama longgarnya supaya keputusan pindah halaman sama.
+     */
+    private const FIT_TOLERANCE_MM = 0.3;
+
+    private const NO_KEEP_TOGETHER_CSS = '.doc-block--avoid,.db-paragraph,.db-list__item{page-break-inside:auto}';
 
     private ?int $lastPageCount = null;
 
@@ -59,10 +74,23 @@ final class MpdfEngine implements PdfEngine
 
         $page = $document->pageSetup();
 
-        $headerReserve = $this->reserve($document->headerHeight(), $this->autoHeaderReserveMm, $document->headerHtml());
-        $footerReserve = $this->reserve($document->footerHeight(), $this->autoFooterReserveMm, $document->footerHtml());
-
         try {
+            $headerHtml = $this->resolveImages($document->headerBleedsToTop()
+                ? $this->neutralizeTopBleed($document->headerHtmlForEngine())
+                : $document->headerHtmlForEngine());
+            $footerHtml = $this->resolveImages($document->footerHtmlForEngine());
+
+            // Kop yang menembus tepi atas mulai dari tepi kertas, jadi bagian setinggi margin
+            // atas halaman sudah tercakup margin itu sendiri.
+            $headerReserve = $this->reserve(
+                $document->headerHeight(),
+                $this->autoHeaderReserveMm,
+                $headerHtml,
+                $document,
+                $document->headerBleedsToTop() ? $page->margin->top : 0.0,
+            );
+            $footerReserve = $this->reserve($document->footerHeight(), $this->autoFooterReserveMm, $footerHtml, $document);
+
             $mpdf = new Mpdf($this->mpdfConfig($document, $page, $headerReserve, $footerReserve));
 
             // Watermark bawaan mpdf: diagonal 45°, huruf tebal keluarga dokumen,
@@ -73,15 +101,32 @@ final class MpdfEngine implements PdfEngine
                 $mpdf->showWatermarkText = true;
             }
 
-            $headerHtml = $document->headerBleedsToTop()
-                ? $this->neutralizeTopBleed($document->headerHtmlForEngine())
-                : $document->headerHtmlForEngine();
+            $perPageZones = $document->headerRepeat() !== ZoneRepeat::All || $document->footerRepeat() !== ZoneRepeat::All;
 
-            $mpdf->SetHTMLHeader($this->headerZone($this->resolveImages($headerHtml), $document));
-            $mpdf->SetHTMLFooter($this->footerZone($this->resolveImages($document->footerHtmlForEngine()), $document));
+            if (! $perPageZones) {
+                $mpdf->SetHTMLHeader($this->headerZone($headerHtml, $document));
+                $mpdf->SetHTMLFooter($this->footerZone($footerHtml, $document, $footerReserve));
+            }
 
             $mpdf->WriteHTML($document->resolvedCss(), HTMLParserMode::HEADER_CSS);
-            $this->writeBody($mpdf, $this->resolveImages($document->bodyHtmlForEngine()) ?? '');
+
+            if ($perPageZones) {
+                $this->definePerPageZones($mpdf, $document, $headerHtml, $footerHtml, $headerReserve, $footerReserve);
+            }
+
+            // mpdf menjaga blok tetap utuh dengan menulisnya dua kali (uji coba lalu ulang), dan
+            // kop halaman baru ikut tertulis dua kali. Untuk kop biasa keduanya bertumpuk persis,
+            // tetapi kotak berposisi tetap di dalam kop tercetak ganda dengan spasi berbeda.
+            // Dokumen seperti itu melepas larangan potong: paragraf dan tanda tangan boleh terpecah.
+            if ($perPageZones || ($headerHtml !== null && str_contains($headerHtml, self::FIXED_QR_CLASS))) {
+                $mpdf->WriteHTML(self::NO_KEEP_TOGETHER_CSS, HTMLParserMode::HEADER_CSS);
+            }
+
+            // Paginator browser menghitung "jarak sesudah" blok terakhir saat memutuskan blok itu
+            // muat di halaman atau tidak; mpdf hanya menghitungnya bila berupa padding.
+            $this->writeBody($mpdf, $this->withBottomMarginsAsPadding(
+                $this->tableHeadsForEngine($this->resolveImages($document->bodyHtmlForEngine()) ?? ''),
+            ));
 
             $bytes = $mpdf->Output('', 'S');
             $this->lastPageCount = $mpdf->page;
@@ -162,7 +207,7 @@ final class MpdfEngine implements PdfEngine
             // Kop dan kaki hidup di area margin mpdf, jadi margin isi harus
             // digeser sebesar ruang yang mereka pakai.
             'margin_top' => $page->margin->top + $headerReserve,
-            'margin_bottom' => $page->margin->bottom + $footerReserve,
+            'margin_bottom' => $page->margin->bottom + $footerReserve - self::FIT_TOLERANCE_MM,
             // mpdf memaku kop pada margin_header dan mengabaikan margin atas
             // negatif di dalamnya — bukan memangkasnya, benar-benar tidak
             // menerapkannya. Kop gambar full-bleed karena itu perlu
@@ -197,7 +242,7 @@ final class MpdfEngine implements PdfEngine
      * isi mengalir yang ditulis sebelumnya hilang. Karena itu, begitu ada QR tetap, isi
      * mengalirnya sendiri ikut ditulis sebagai kotak berposisi tetap di tempat kop semestinya.
      */
-    private function headerZone(?string $html, RenderedDocument $document): string
+    private function headerZone(?string $html, RenderedDocument $document, bool $pinned = false): string
     {
         if ($html === null) {
             return '';
@@ -205,8 +250,8 @@ final class MpdfEngine implements PdfEngine
 
         [$flow, $fixed] = $this->pullFixedQr($html);
 
-        if ($fixed === []) {
-            return '<div class="doc-root">'.$flow.'</div>';
+        if ($fixed === [] && ! $pinned) {
+            return '<div class="doc-root">'.$this->zoneFlow($flow).'</div>';
         }
 
         $top = $document->headerBleedsToTop() ? 0.0 : $document->pageSetup()->margin->top;
@@ -223,7 +268,7 @@ final class MpdfEngine implements PdfEngine
      *   kotak kaki.
      * - margin-bottom setiap blok dibuang (lihat withBottomMarginsAsPadding()).
      */
-    private function footerZone(?string $html, RenderedDocument $document): string
+    private function footerZone(?string $html, RenderedDocument $document, float $reserve, bool $pinned = false): string
     {
         if ($html === null) {
             return '';
@@ -239,11 +284,15 @@ final class MpdfEngine implements PdfEngine
             return $this->pinnedZone($flow, 'top:'.Mm::css($top), $page).implode('', $fixed);
         }
 
-        if ($fixed !== []) {
-            return $this->pinnedZone($flow, 'bottom:'.Mm::css($page->margin->bottom), $page).implode('', $fixed);
+        if ($fixed !== [] || $pinned) {
+            // Kaki "auto" pun dijangkar dari atas, memakai tingginya yang sudah diukur: kotak
+            // berjangkar bawah tanpa tinggi pasti dikecilkan mpdf supaya "muat" (teks menyusut 7%).
+            $top = $page->heightMm() - $page->margin->bottom - $reserve;
+
+            return $this->pinnedZone($flow, 'top:'.Mm::css($top), $page).implode('', $fixed);
         }
 
-        return '<div class="doc-root">'.$this->withBottomMarginsAsPadding($flow).'</div>';
+        return '<div class="doc-root">'.$this->zoneFlow($flow).'</div>';
     }
 
     /** Isi zona sebagai kotak berposisi tetap selebar area isi; $anchor berupa `top:…` atau `bottom:…`. */
@@ -254,7 +303,7 @@ final class MpdfEngine implements PdfEngine
             Mm::css($page->margin->left),
             Mm::css($page->contentWidthMm()),
             $anchor,
-            $this->withBottomMarginsAsPadding($flow),
+            $this->zoneFlow($flow),
         );
     }
 
@@ -266,9 +315,23 @@ final class MpdfEngine implements PdfEngine
      */
     private function withBottomMarginsAsPadding(string $html): string
     {
+        return $this->withMarginsAsPadding($html, 'bottom');
+    }
+
+    /**
+     * Isi kop/kaki untuk mpdf: margin atas dan bawah tiap blok ditulis sebagai padding. Selain
+     * margin-bottom di kaki, mpdf juga membuang margin-top elemen pertama sebuah kop/kaki.
+     */
+    private function zoneFlow(string $flow): string
+    {
+        return $this->withMarginsAsPadding($this->withMarginsAsPadding($flow, 'top'), 'bottom');
+    }
+
+    private function withMarginsAsPadding(string $html, string $side): string
+    {
         return preg_replace_callback(
             '/<(?:p|div)\b[^>]*>/i',
-            static fn (array $m): string => (string) preg_replace('/\bmargin-bottom:(\s*[0-9][0-9.]*mm)/', 'padding-bottom:$1', $m[0]),
+            static fn (array $m): string => (string) preg_replace('/\bmargin-'.$side.':(\s*[0-9][0-9.]*mm)/', 'padding-'.$side.':$1', $m[0]),
             $html,
         ) ?? $html;
     }
@@ -383,12 +446,96 @@ final class MpdfEngine implements PdfEngine
         return $blocks;
     }
 
-    private function reserve(float|string $declared, float $fallback, ?string $html): float
+    /**
+     * Kop/kaki yang hanya tampil di halaman pertama atau selain halaman pertama.
+     *
+     * mpdf memilih kop per halaman dengan benar lewat @page dan @page :first, tetapi tidak
+     * untuk kaki: kaki halaman pertama selalu mengikuti aturan halaman berikutnya. Karena itu
+     * kaki ditulis sebagai kotak berposisi tetap di dalam kop halaman yang bersangkutan, dan
+     * mekanisme kaki mpdf tidak dipakai sama sekali di jalur ini.
+     *
+     * Margin isi mengikuti paginator browser: zona bertinggi tetap menyisihkan ruangnya di
+     * semua halaman, zona "auto" tidak memakan ruang di halaman tempat ia tidak tampil.
+     */
+    private function definePerPageZones(Mpdf $mpdf, RenderedDocument $document, ?string $headerHtml, ?string $footerHtml, float $headerReserve, float $footerReserve): void
+    {
+        $page = $document->pageSetup();
+        $css = '';
+
+        foreach ([self::REST_PAGES_NAME => 2, self::FIRST_PAGE_NAME => 1] as $name => $pageNumber) {
+            $header = $headerHtml !== null && $document->headerRepeat()->appearsOn($pageNumber);
+            $footer = $footerHtml !== null && $document->footerRepeat()->appearsOn($pageNumber);
+
+            $zones = ($header ? $this->headerZone($headerHtml, $document, pinned: true) : '')
+                .($footer ? $this->footerZone($footerHtml, $document, $footerReserve, pinned: true) : '');
+
+            $mpdf->DefHTMLHeaderByName($name, $zones === '' ? '<div></div>' : $zones);
+
+            $css .= sprintf(
+                '@page%s{margin-top:%s;margin-bottom:%s;header:html_%s;}',
+                $pageNumber === 1 ? ' :first' : '',
+                Mm::css($page->margin->top + ($header || ! is_string($document->headerHeight()) ? $headerReserve : 0.0)),
+                Mm::css($page->margin->bottom + ($footer || ! is_string($document->footerHeight()) ? $footerReserve : 0.0) - self::FIT_TOLERANCE_MM),
+                $name,
+            );
+        }
+
+        $mpdf->WriteHTML($css, HTMLParserMode::HEADER_CSS);
+    }
+
+    /**
+     * mpdf mengulang <thead> di setiap halaman tanpa syarat. Tabel yang tidak meminta
+     * pengulangan (data-repeat-header="0") diberi baris kepalanya sebagai <tbody> biasa,
+     * supaya hanya muncul sekali seperti di browser.
+     */
+    private function tableHeadsForEngine(string $html): string
+    {
+        return preg_replace_callback(
+            '#<table class="db-table__table[^>]*data-repeat-header="0"[^>]*>.*?</table>#s',
+            static fn (array $m): string => str_replace(
+                ['<thead class="db-table__head">', '</thead>'],
+                ['<tbody class="db-table__head">', '</tbody>'],
+                $m[0],
+            ),
+            $html,
+        ) ?? $html;
+    }
+
+    /**
+     * Ruang yang disisihkan untuk kop atau kaki di margin halaman mpdf. Tinggi numerik dari
+     * schema dipakai apa adanya; zona "auto" diukur, supaya isi mulai dan berakhir tepat di
+     * tepi zona seperti di browser. $fallback hanya dipakai bila pengukuran gagal.
+     */
+    private function reserve(float|string $declared, float $fallback, ?string $html, RenderedDocument $document, float $alreadyCoveredMm = 0.0): float
     {
         if ($html === null) {
             return 0.0;
         }
 
-        return is_string($declared) ? $fallback : $declared;
+        if (! is_string($declared)) {
+            return $declared;
+        }
+
+        $measured = $this->measureZone($html, $document);
+
+        return $measured === null ? $fallback : max(0.0, $measured - $alreadyCoveredMm);
+    }
+
+    /**
+     * Tinggi isi mengalir sebuah zona (tanpa QR berposisi tetap), diukur pada instance mpdf
+     * tersendiri supaya dokumen yang sedang disusun tidak tersentuh. Null bila gagal diukur.
+     */
+    private function measureZone(string $html, RenderedDocument $document): ?float
+    {
+        [$flow] = $this->pullFixedQr($html);
+
+        try {
+            $probe = new Mpdf($this->mpdfConfig($document, $document->pageSetup(), 0.0, 0.0));
+            $probe->WriteHTML($document->resolvedCss(), HTMLParserMode::HEADER_CSS);
+
+            return (float) $probe->_getHtmlHeight('<div class="doc-root">'.$this->zoneFlow($flow).'</div>');
+        } catch (Throwable) {
+            return null;
+        }
     }
 }

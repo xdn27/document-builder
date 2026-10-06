@@ -9,8 +9,14 @@ import { describeFragments, openGroupContainer, appendToGroup } from './fragment
  * oleh mesin tata letak browser — mesin yang sama yang nanti mencetak.
  */
 
-/** Toleransi pembulatan subpiksel sebelum sebuah badan halaman dianggap meluap. */
-const OVERFLOW_TOLERANCE_PX = 1;
+/**
+ * Luapan yang masih dianggap muat, dalam mm. Tata letak browser dan mpdf berselisih sepersekian
+ * milimeter di dasar halaman (pembulatan satuan internal), jadi keduanya memakai kelonggaran
+ * yang sama: lihat MpdfEngine::FIT_TOLERANCE_MM.
+ */
+export const FIT_TOLERANCE_MM = 0.3;
+
+const PX_PER_MM = 96 / 25.4;
 
 /** Batas tunggu gambar; gambar yang gagal dimuat tidak boleh menggantung paginasi. */
 const IMAGE_TIMEOUT_MS = 5000;
@@ -80,8 +86,26 @@ function zoneAppearsOn(repeat, pageIndex) {
     return true;
 }
 
+/**
+ * Luapan badan halaman dalam px CSS: tepi bawah blok terakhir terhadap tepi bawah badan.
+ * Diukur dari kotak pecahan (bukan scrollHeight/clientHeight yang dibulatkan ke piksel
+ * bulat) supaya keputusan muat/tidak sama dengan mpdf, dan dibagi skala supaya zoom kanvas
+ * tidak mengubah hasilnya.
+ */
+export function bodyOverflowPx(bodyRect, lastRect, bodyOffsetHeight) {
+    const scale = bodyOffsetHeight > 0 && bodyRect.height > 0 ? bodyRect.height / bodyOffsetHeight : 1;
+
+    return (lastRect.bottom - bodyRect.bottom) / scale;
+}
+
 function bodyOverflows(bodyEl) {
-    return bodyEl.scrollHeight > bodyEl.clientHeight + OVERFLOW_TOLERANCE_PX;
+    const last = bodyEl.lastElementChild;
+
+    if (!last) return false;
+
+    const overflow = bodyOverflowPx(bodyEl.getBoundingClientRect(), last.getBoundingClientRect(), bodyEl.offsetHeight);
+
+    return overflow > FIT_TOLERANCE_MM * PX_PER_MM;
 }
 
 function fillPageNumbers(scope, pageIndex, pageCount) {

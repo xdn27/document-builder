@@ -58,7 +58,7 @@ const pages = [...document.querySelectorAll('.doc-page')].map((page) => {
     const body = page.querySelector('.doc-page__body');
     return {
         index: Number(page.dataset.pageIndex),
-        clipped: body.scrollHeight > body.clientHeight + 1,
+        clipped: body.scrollHeight > body.clientHeight + 2,
         overflowMarked: body.querySelector('.db-overflow') !== null,
         rows: body.querySelectorAll('.db-table__row').length,
         heads: body.querySelectorAll('thead.db-table__head').length,

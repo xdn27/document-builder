@@ -64,7 +64,8 @@ class AssetLoaderTest extends TestCase
     /**
      * mpdf tidak mengenal selektor atribut: aturan `[data-break-inside='avoid']` tidak pernah
      * berlaku di PDF dan blok tanda tangan terpotong antarhalaman. Larangan memotong harus
-     * lewat kelas. Paragraf ikut dilarang karena paginator browser pun memindahkannya utuh.
+     * lewat kelas. Paragraf dan butir daftar ikut dilarang karena paginator browser pun
+     * memindahkannya utuh.
      */
     public function test_keep_together_rules_use_class_selectors_mpdf_understands(): void
     {
@@ -72,7 +73,7 @@ class AssetLoaderTest extends TestCase
 
         $this->assertStringNotContainsString('[data-break-inside', $css, 'Selektor atribut tidak berlaku di mpdf.');
 
-        foreach (['doc-block--avoid', 'db-paragraph'] as $class) {
+        foreach (['doc-block--avoid', 'db-paragraph', 'db-list__item'] as $class) {
             $this->assertMatchesRegularExpression('/\.'.$class.'\b[^{]*\{[^}]*page-break-inside:\s*avoid\s*;/', $css, $class);
         }
     }

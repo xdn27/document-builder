@@ -2,8 +2,10 @@
 
 namespace Maqiis\DocumentBuilder\Tests\Render\Block;
 
+use Maqiis\DocumentBuilder\Render\RenderContext;
 use Maqiis\DocumentBuilder\Schema\BlockType;
 use Maqiis\DocumentBuilder\Schema\SchemaValidator;
+use Maqiis\DocumentBuilder\Support\Mm;
 use PHPUnit\Framework\TestCase;
 
 class TableListRendererTest extends TestCase
@@ -35,9 +37,47 @@ class TableListRendererTest extends TestCase
         $this->assertStringContainsString('Fatimah', $html);
     }
 
-    public function test_table_emits_column_widths_as_percentages(): void
+    public function test_table_emits_column_widths_in_millimetres_of_the_table_width(): void
     {
-        $this->assertStringContainsString('width:60%', $this->table());
+        // Lebar absolut: mpdf hanya melebarkan kolom yang lebih sempit dari isinya (seperti
+        // browser) bila lebarnya bukan persen. 30% dari lebar isi halaman contoh.
+        $contentWidth = RenderContext::sample()->page->contentWidthMm();
+        $html = $this->table();
+
+        $this->assertStringContainsString('width:'.Mm::css($contentWidth * 0.3).';', $html);
+        $this->assertStringNotContainsString('%', $html);
+    }
+
+    public function test_the_widest_column_takes_the_remainder_when_every_column_has_a_width(): void
+    {
+        // 10/60/30: kolom 60% tidak diberi lebar, sehingga kolom yang lebih sempit dari
+        // isinya bisa melebar tanpa membuat mpdf mengecilkan seisi tabel.
+        $contentWidth = RenderContext::sample()->page->contentWidthMm();
+        $html = $this->table();
+
+        $this->assertStringContainsString('width:'.Mm::css($contentWidth * 0.1).';', $html);
+        $this->assertStringContainsString('width:'.Mm::css($contentWidth * 0.3).';', $html);
+        $this->assertStringNotContainsString('width:'.Mm::css($contentWidth * 0.6).';', $html);
+    }
+
+    public function test_columns_keep_their_widths_when_they_do_not_fill_the_table(): void
+    {
+        $contentWidth = RenderContext::sample()->page->contentWidthMm();
+        $html = $this->table(['columns' => [
+            ['label' => 'A', 'widthPercent' => 30, 'align' => 'left'],
+            ['label' => 'B', 'widthPercent' => 30, 'align' => 'left'],
+            ['label' => 'C', 'widthPercent' => 0, 'align' => 'left'],
+        ], 'rows' => [['1', '2', '3']]]);
+
+        $this->assertSame(2, substr_count($html, 'width:'.Mm::css($contentWidth * 0.3).';'));
+    }
+
+    public function test_table_column_widths_shrink_with_the_outer_margins(): void
+    {
+        $contentWidth = RenderContext::sample()->page->contentWidthMm();
+        $html = $this->table(['marginLeftMm' => 8, 'marginRightMm' => 2]);
+
+        $this->assertStringContainsString('width:'.Mm::css(($contentWidth - 10) * 0.3).';', $html);
     }
 
     public function test_table_marks_the_header_as_repeatable_by_default(): void
@@ -95,7 +135,7 @@ class TableListRendererTest extends TestCase
         $this->assertStringContainsString('<tbody class="db-table__body">', $html);
         $this->assertStringContainsString('Fatimah', $html);
         // Sel data tetap membawa lebar kolom saat thead disembunyikan
-        $this->assertStringContainsString('width:60%', $html);
+        $this->assertStringContainsString('width:'.Mm::css(RenderContext::sample()->page->contentWidthMm() * 0.3).';', $html);
     }
 
     public function test_table_renders_outer_margins(): void

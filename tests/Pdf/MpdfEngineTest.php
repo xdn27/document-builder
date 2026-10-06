@@ -455,6 +455,193 @@ class MpdfEngineTest extends TestCase
         $this->assertEqualsWithDelta($this->textY($pdf, 'Isi1') - 6.0, $this->textY($pdf, 'Awalan'), 0.3);
     }
 
+    public function test_a_list_item_at_the_page_edge_moves_whole_to_the_next_page_in_mpdf(): void
+    {
+        // Paginator browser memecah daftar per butir, tidak pernah di tengah butir; mpdf dulu
+        // memecahnya per baris. Diuji pada beberapa posisi supaya salah satunya pasti di tepi.
+        $long = str_repeat('lorem ipsum dolor sit amet ', 14);
+
+        foreach ([20, 24, 25, 26, 28] as $fillers) {
+            $pdf = (new MpdfEngine)->render($this->flowDocument([
+                ...$this->fillerParagraphs($fillers),
+                ['id' => 'list', 'type' => 'list', 'props' => ['items' => [
+                    ['text' => "satu<br>MulaiA {$long}<br>UjungA", 'level' => 0],
+                    ['text' => "dua<br>MulaiB {$long}<br>UjungB", 'level' => 0],
+                    ['text' => "tiga<br>MulaiC {$long}<br>UjungC", 'level' => 1],
+                ]]],
+            ]));
+
+            foreach (['A', 'B', 'C'] as $item) {
+                $this->assertGreaterThan(0.0, $this->textY($pdf, 'Ujung'.$item));
+                $this->assertGreaterThan(
+                    $this->textY($pdf, 'Ujung'.$item),
+                    $this->textY($pdf, 'Mulai'.$item),
+                    "butir {$item} terpotong dengan {$fillers} paragraf di depannya",
+                );
+            }
+        }
+    }
+
+    public function test_an_auto_height_header_reserves_exactly_its_own_height_in_mpdf(): void
+    {
+        // Dulu zona "auto" diberi cadangan tetap 35 mm, sehingga isi mulai jauh di bawah kop
+        // (atau menimpanya bila kop lebih tinggi). Di browser isi mulai tepat di bawah kop.
+        $template = SchemaValidator::validate([
+            'version' => 1,
+            'page' => ['size' => 'A4', 'orientation' => 'portrait', 'margin' => ['top' => 20, 'right' => 20, 'bottom' => 20, 'left' => 20]],
+            'style' => ['fontFamily' => 'tinos', 'fontSize' => 12, 'lineHeight' => 1.5],
+            'zones' => [
+                'header' => ['repeat' => 'all', 'height' => 'auto', 'blocks' => [
+                    $this->spacedParagraph('h1', 'Kopsatu', 0, 0),
+                    $this->spacedParagraph('h2', 'Kopdua', 3, 4),
+                ]],
+                'body' => ['blocks' => [$this->spacedParagraph('b1', 'Isi', 0, 0)]],
+                'footer' => ['blocks' => []],
+            ],
+        ]);
+
+        $pdf = (new MpdfEngine)->render((new HtmlRenderer)->render($template, RenderContext::sample()));
+
+        // Kop: baris, jarak 3, baris, jarak 4 → isi mulai 2 baris + 7 mm di bawah baris pertama kop.
+        $this->assertEqualsWithDelta(2 * self::LINE_MM + 7.0, $this->textY($pdf, 'Kopsatu') - $this->textY($pdf, 'Isi'), 0.2);
+    }
+
+    public function test_an_auto_height_footer_reserves_exactly_its_own_height_in_mpdf(): void
+    {
+        // Isi setinggi 248,5 mm dan kaki satu baris (6,35 mm) muat di area 257 mm; dengan
+        // cadangan tetap 12 mm yang lama, baris terakhir terdorong ke halaman kedua.
+        $template = SchemaValidator::validate([
+            'version' => 1,
+            'page' => ['size' => 'A4', 'orientation' => 'portrait', 'margin' => ['top' => 20, 'right' => 20, 'bottom' => 20, 'left' => 20]],
+            'style' => ['fontFamily' => 'tinos', 'fontSize' => 12, 'lineHeight' => 1.5],
+            'zones' => [
+                'body' => ['blocks' => [...$this->fillerParagraphs(29), $this->spacedParagraph('last', 'Terakhir', 0, 0)]],
+                'footer' => ['repeat' => 'all', 'height' => 'auto', 'blocks' => [$this->spacedParagraph('f1', 'Kaki', 0, 0)]],
+            ],
+        ]);
+        $engine = new MpdfEngine;
+
+        $engine->render((new HtmlRenderer)->render($template, RenderContext::sample()));
+
+        $this->assertSame(1, $engine->lastPageCount());
+    }
+
+    public function test_zone_repeat_modes_are_honoured_in_mpdf(): void
+    {
+        // Dulu kop/kaki selalu tampil di semua halaman mpdf, apa pun pengaturan pengulangannya.
+        $render = function (string $headerRepeat, string $footerRepeat): array {
+            $template = SchemaValidator::validate([
+                'version' => 1,
+                'page' => ['size' => 'A4', 'orientation' => 'portrait', 'margin' => ['top' => 20, 'right' => 20, 'bottom' => 20, 'left' => 20]],
+                'style' => ['fontFamily' => 'tinos', 'fontSize' => 12, 'lineHeight' => 1.5],
+                'zones' => [
+                    'header' => ['repeat' => $headerRepeat, 'height' => 'auto', 'blocks' => [$this->spacedParagraph('h', 'Kopsurat', 0, 4)]],
+                    'body' => ['blocks' => $this->fillerParagraphs(70)],
+                    'footer' => ['repeat' => $footerRepeat, 'height' => 'auto', 'blocks' => [$this->spacedParagraph('f', 'Kakisurat', 0, 0)]],
+                ],
+            ]);
+            $engine = new MpdfEngine;
+            $pdf = $engine->render((new HtmlRenderer)->render($template, RenderContext::sample()));
+
+            return [$this->textCount($pdf, 'Kopsurat'), $this->textCount($pdf, 'Kakisurat'), (int) $engine->lastPageCount()];
+        };
+
+        [$headers, $footers, $pages] = $render('all', 'all');
+        $this->assertGreaterThan(2, $pages);
+        $this->assertSame([$pages, $pages], [$headers, $footers]);
+
+        [$headers, $footers, $pages] = $render('first-only', 'except-first');
+        $this->assertSame([1, $pages - 1], [$headers, $footers]);
+
+        [$headers, $footers, $pages] = $render('except-first', 'first-only');
+        $this->assertSame([$pages - 1, 1], [$headers, $footers]);
+    }
+
+    public function test_a_first_only_auto_header_frees_its_space_on_later_pages_in_mpdf(): void
+    {
+        // Kop "auto" yang hanya di halaman pertama tidak memakan ruang di halaman berikutnya
+        // (di browser zona itu kosong di sana): dokumen yang sama dengan kop di semua halaman
+        // butuh lebih banyak halaman.
+        $pages = function (string $repeat): int {
+            $template = SchemaValidator::validate([
+                'version' => 1,
+                'page' => ['size' => 'A4', 'orientation' => 'portrait', 'margin' => ['top' => 20, 'right' => 20, 'bottom' => 20, 'left' => 20]],
+                'style' => ['fontFamily' => 'tinos', 'fontSize' => 12, 'lineHeight' => 1.5],
+                'zones' => [
+                    'header' => ['repeat' => $repeat, 'height' => 'auto', 'blocks' => [
+                        ['id' => 'sp', 'type' => 'spacer', 'props' => ['heightMm' => 120]],
+                    ]],
+                    'body' => ['blocks' => $this->fillerParagraphs(45)],
+                    'footer' => ['blocks' => []],
+                ],
+            ]);
+            $engine = new MpdfEngine;
+            $engine->render((new HtmlRenderer)->render($template, RenderContext::sample()));
+
+            return (int) $engine->lastPageCount();
+        };
+
+        // 45 paragraf × 8,35 mm = 376 mm. Kop 120 mm di semua halaman: 137 mm isi per halaman → 3
+        // halaman. Hanya di halaman pertama: 137 + 257 → 2 halaman.
+        $this->assertSame(3, $pages('all'));
+        $this->assertSame(2, $pages('first-only'));
+    }
+
+    public function test_a_repeating_table_header_repeats_on_every_page_in_mpdf(): void
+    {
+        $rows = array_map(static fn (int $i): array => ["Baris{$i}"], range(1, 70));
+        $render = function (bool $repeat) use ($rows): array {
+            $engine = new MpdfEngine;
+            $pdf = $engine->render($this->flowDocument([[
+                'id' => 't',
+                'type' => 'table',
+                'props' => ['columns' => [['label' => 'Judulkolom', 'widthPercent' => 0, 'align' => 'left']], 'rows' => $rows, 'showHeader' => true, 'repeatHeader' => $repeat],
+            ]]));
+
+            return [$this->textCount($pdf, 'Judulkolom'), (int) $engine->lastPageCount()];
+        };
+
+        [$count, $pages] = $render(true);
+        $this->assertGreaterThan(1, $pages);
+        $this->assertSame($pages, $count);
+
+        [$count] = $render(false);
+        $this->assertSame(1, $count);
+    }
+
+    public function test_a_pinned_header_is_not_drawn_twice_when_a_block_moves_to_the_next_page(): void
+    {
+        // mpdf menulis ulang kop halaman baru saat memindahkan blok utuh; kotak berposisi tetap di
+        // dalam kop (QR tetap, zona per halaman) lalu tercetak ganda.
+        $template = SchemaValidator::validate([
+            'version' => 1,
+            'page' => ['size' => 'A4', 'orientation' => 'portrait', 'margin' => ['top' => 20, 'right' => 20, 'bottom' => 20, 'left' => 20]],
+            'style' => ['fontFamily' => 'tinos', 'fontSize' => 12, 'lineHeight' => 1.5],
+            'zones' => [
+                'header' => ['repeat' => 'first-only', 'height' => 'auto', 'blocks' => [$this->spacedParagraph('h', 'Kopsurat', 0, 4)]],
+                'body' => ['blocks' => [
+                    ...$this->fillerParagraphs(28),
+                    $this->spacedParagraph('long', 'Awalan<br>'.str_repeat('lorem ipsum dolor sit amet consectetur ', 40).'<br>Akhiran', 0, 2),
+                ]],
+                'footer' => ['repeat' => 'all', 'height' => 'auto', 'blocks' => [$this->spacedParagraph('f', 'Kakisurat', 0, 0)]],
+            ],
+        ]);
+
+        $pdf = (new MpdfEngine)->render((new HtmlRenderer)->render($template, RenderContext::sample()));
+        $needle = implode('', array_map(static fn (string $c): string => "\x00".$c, str_split('Kakisurat')));
+        preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $pdf, $streams);
+
+        foreach ($streams[1] as $raw) {
+            $decomp = @gzuncompress($raw);
+
+            if ($decomp !== false) {
+                $this->assertLessThanOrEqual(1, substr_count($decomp, '('.$needle));
+            }
+        }
+
+        $this->assertSame(2, $this->textCount($pdf, 'Kakisurat'));
+    }
+
     public function test_the_mpdf_stylesheet_carries_no_flow_root(): void
     {
         $this->assertStringNotContainsString('flow-root', $this->documentFromFixture('surat-satu-halaman.json')->resolvedCss());
@@ -678,6 +865,21 @@ class MpdfEngineTest extends TestCase
         }
 
         return 0.0;
+    }
+
+    /** Di berapa halaman teks ini muncul (mpdf menulis satu content stream per halaman). */
+    private function textCount(string $pdf, string $text): int
+    {
+        $needle = implode('', array_map(static fn (string $c): string => "\x00".$c, str_split($text)));
+        preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $pdf, $streams);
+        $count = 0;
+
+        foreach ($streams[1] as $raw) {
+            $decomp = @gzuncompress($raw);
+            $count += $decomp !== false && str_contains($decomp, '('.$needle) ? 1 : 0;
+        }
+
+        return $count;
     }
 
     private function qrGenerator(): QrCodeGenerator

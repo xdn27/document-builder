@@ -265,6 +265,8 @@ body {
    browser maupun PDF. Marker inline-block berlebar tetap memberi hasil setara. */
 .db-list__item {
     display: block;
+    /* Paginator browser memecah daftar per butir, tidak pernah di tengah butir. */
+    page-break-inside: avoid;
 }
 
 .db-list__marker {

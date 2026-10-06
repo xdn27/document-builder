@@ -3,6 +3,46 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [1.9.6] — 2026-10-06
+
+Hasil sapuan menyeluruh cetak browser vs PDF mpdf pada 60 dokumen (fixture, dokumen terbit, dan
+dokumen uji tabel, pengulangan zona, serta batas halaman). **PDF berubah** di semua butir di bawah;
+tampilan builder dan cetak browser hanya berubah di butir yang menyebutnya.
+
+### Diperbaiki
+- **Butir daftar** di batas halaman pindah utuh di PDF mpdf (sebelumnya terpecah per baris).
+- **Lebar kolom tabel** ditulis dalam mm, bukan persen. Kolom yang lebih sempit dari isinya (mis.
+  kolom titik dua 1%) dilebarkan browser mengikuti isi, sedangkan mpdf memakai persen apa adanya
+  sehingga isi kolom berikutnya bergeser 2,6 mm dan bisa menimpa teks.
+- **Kop/kaki bertinggi `auto`** kini diukur di mpdf, bukan memakai cadangan tetap 35/12 mm: isi
+  mulai dan berakhir tepat di tepi zona seperti di browser (sebelumnya bisa berselisih 7,7 mm dan
+  jumlah halaman berbeda).
+- **Pengulangan kop/kaki** (`first-only`, `except-first`) kini dihormati mpdf; sebelumnya zona
+  selalu tampil di semua halaman. Zona `auto` yang tidak tampil tidak memakan ruang.
+- **Header tabel** hanya diulang di halaman berikutnya bila `repeatHeader` aktif; mpdf dulu
+  selalu mengulangnya.
+- **"Jarak sebelum" blok pertama kop/kaki** dan **"jarak sesudah" blok terakhir sebuah halaman**
+  kini diperhitungkan mpdf seperti di browser.
+
+### Diubah
+- Bila semua kolom tabel diberi lebar dan jumlahnya memenuhi tabel, kolom terlebar menjadi
+  pengambil sisa. **Builder dan cetak browser berubah** hanya bila ada kolom yang lebih sempit dari
+  isinya: kolom itu melebar dan kolom terlebar yang mengalah (sebelumnya semua kolom diskala).
+- Paginator browser dan mpdf memakai kelonggaran muat yang sama di dasar halaman (0,3 mm), dan
+  paginator mengukur dari kotak pecahan, bukan `scrollHeight` yang dibulatkan. **Titik potong
+  halaman di builder dan cetak browser bisa bergeser** untuk blok yang meluap kurang dari 0,3 mm.
+  Dipindai pada 40 dokumen di sekitar batas halaman: titik potong sama di semuanya.
+
+### Diketahui
+- Dokumen yang kopnya memuat QR berposisi tetap, atau yang zona-nya tidak tampil di semua halaman,
+  melepas larangan potong di mpdf: paragraf, butir daftar, dan tanda tangan di batas halaman bisa
+  terpecah. mpdf menulis ulang kop saat memindahkan blok utuh, dan kotak berposisi tetap di dalam
+  kop tercetak ganda.
+- Penanda butir daftar (`1.`, `•`) tidak diberi lebar tetap oleh mpdf, sehingga teks butir mulai
+  lebih kiri dan pemenggalan barisnya bisa berbeda dari browser.
+- `spaceAfterMm` pada blok `list` tidak dipakai `ListRenderer`: jarak sesudah daftar tidak muncul
+  di browser maupun PDF.
+
 ## [1.9.5] — 2026-10-06
 
 ### Diperbaiki
