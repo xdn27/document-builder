@@ -3,6 +3,25 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [1.9.8] — 2026-10-06
+
+### Keamanan
+- **XSS tersimpan di inspector builder.** Editor teks kaya mencetak nilai prop schema tanpa
+  sanitasi (`{!! !!}` di view, `innerHTML` di `builder.mjs`). Nilai itu bisa diisi lewat mode
+  "kode HTML" atau impor JSON, sehingga skrip tersimpan berjalan di browser penyunting berikutnya.
+  View kini mencetak keluaran `HtmlSanitizer`, dan `builder.mjs` melewatkan nilainya ke
+  `sanitizeRichHtml()` (hanya `<b><i><u><br>` tanpa atribut) sebelum dipasang.
+- **Path traversal pada sumber gambar.** `ImageSourcePolicy` hanya mencocokkan awalan string,
+  sehingga `…/storage/../../x` lolos. Segmen `..` kini ditolak, termasuk bentuk ter-encode
+  (`%2e%2e`, `%252e%252e`) dan dengan garis miring terbalik.
+  `FilesystemImageUploadStorage::resolveLocalPath()` menolak jalur yang keluar dari root disk,
+  termasuk lewat symlink. Sebelumnya bentuk `..` polos dihentikan Flysystem dengan exception
+  (pratinjau gagal total); kini sumbernya ditolak dan blok menampilkan penanda.
+
+### Diketahui
+- Schema yang sudah tersimpan tidak dibersihkan: nilai mentahnya tetap ada di database, hanya
+  tidak lagi dijalankan saat ditampilkan atau dirender.
+
 ## [1.9.7] — 2026-10-06
 
 Lanjutan sapuan cetak browser vs PDF mpdf, kini pada 74 dokumen: jumlah halaman dan halaman tiap

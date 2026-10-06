@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { initBuilder } from '../../resources/js/builder.mjs';
+import { initBuilder, sanitizeRichHtml } from '../../resources/js/builder.mjs';
 
 /**
  * Yang diuji di sini hanya disiplin transport: apakah handle applyPreview()
@@ -330,4 +330,27 @@ test('initMiniRte toggle source beralih antara editor dan textarea', () => {
     assert.equal(classes.source.has('d-none'), true);
     assert.equal(classes.editor.has('d-none'), false);
     assert.equal(editor.innerHTML, '<b>Kode</b>');
+});
+
+test('sanitizeRichHtml hanya menyisakan b, i, u, dan br tanpa atribut', () => {
+    assert.equal(sanitizeRichHtml('<b onclick="x()">Tebal</b> <i>miring</i><br/><u class="a">garis</u>'), '<b>Tebal</b> <i>miring</i><br><u>garis</u>');
+});
+
+test('sanitizeRichHtml membuang skrip, pengendali peristiwa, dan tag lain', () => {
+    assert.equal(sanitizeRichHtml('a<script>alert(1)</script>b'), 'ab');
+    assert.equal(sanitizeRichHtml('<img src=x onerror=alert(1)>teks'), 'teks');
+    assert.equal(sanitizeRichHtml('<svg/onload=alert(1)>x</svg>'), 'x');
+    assert.equal(sanitizeRichHtml('<a href="javascript:alert(1)">tautan</a>'), 'tautan');
+    assert.equal(sanitizeRichHtml('<style>*{}</style><!-- <b>komentar</b> -->sisa'), 'sisa');
+    // Tag yang tidak ditutup tidak boleh lolos sebagai awal elemen.
+    assert.equal(sanitizeRichHtml('awal <img src=x onerror=alert(1)'), 'awal ');
+    assert.equal(sanitizeRichHtml('<scr<script>ipt>alert(1)</script>'), '');
+    // Membuang satu tag tidak boleh menyatukan sisanya menjadi tag baru.
+    assert.equal(sanitizeRichHtml('<<x>img src=x onerror=alert(1)>teks'), 'teks');
+    assert.equal(sanitizeRichHtml('<scr<script>x</script>ipt>alert(1)</scr<script>x</script>ipt>'), 'alert(1)');
+});
+
+test('sanitizeRichHtml membiarkan teks biasa dan token variabel', () => {
+    assert.equal(sanitizeRichHtml('Nomor: {{ document.number }} & 3 < 5'), 'Nomor: {{ document.number }} & 3 < 5');
+    assert.equal(sanitizeRichHtml(null), '');
 });

@@ -36,6 +36,12 @@ final class ImageSourcePolicy
             return $this->allowDataUri && preg_match(self::DATA_URI_PATTERN, $src) === 1;
         }
 
+        // Segmen ".." (juga yang ter-encode) membawa jalur keluar dari awalan yang diizinkan
+        // walau awalannya cocok secara string. Ditolak sebelum pencocokan awalan apa pun.
+        if ($this->hasTraversal($src)) {
+            return false;
+        }
+
         if ($this->allowAnything) {
             return str_starts_with($src, 'http://') || str_starts_with($src, 'https://');
         }
@@ -63,5 +69,26 @@ final class ImageSourcePolicy
         $prefix = str_ends_with($prefix, '/') ? $prefix : $prefix.'/';
 
         return str_starts_with($src, $prefix);
+    }
+
+    /**
+     * Apakah $src memuat segmen ".." — setelah percent-decoding berulang (untuk bentuk
+     * %2e%2e maupun %252e%252e) dan dengan garis miring terbalik dianggap pemisah jalur.
+     */
+    private function hasTraversal(string $src): bool
+    {
+        $decoded = $src;
+
+        for ($i = 0; $i < 5; $i++) {
+            $next = rawurldecode($decoded);
+
+            if ($next === $decoded) {
+                break;
+            }
+
+            $decoded = $next;
+        }
+
+        return preg_match('#(?:^|[/\\\\])\.\.(?:[/\\\\?\#]|$)#', $decoded) === 1;
     }
 }

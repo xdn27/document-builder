@@ -263,7 +263,7 @@
                                                             contenteditable="true"
                                                             data-rte-editor="true"
                                                             spellcheck="false"
-                                                            style="min-height: 5.5rem; max-height: 14rem; overflow-y: auto; outline: none;">{!! $block['props'][$key] ?? '' !!}</div>
+                                                            style="min-height: 5.5rem; max-height: 14rem; overflow-y: auto; outline: none;">{!! app(\Maqiis\DocumentBuilder\Sanitize\HtmlSanitizer::class)->sanitize((string) ($block['props'][$key] ?? '')) !!}</div>
 
                                                         <textarea id="prop-{{ $key }}"
                                                             class="db-mini-rte__source form-control form-control-sm border-0 rounded-0 d-none font-monospace"

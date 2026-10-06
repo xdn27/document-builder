@@ -101,7 +101,7 @@ export function initBuilder({
         const activeEditor = doc.querySelector?.('.db-mini-rte [data-rte-editor]');
         const activeSource = doc.querySelector?.('.db-mini-rte [data-rte-source]');
         if (activeEditor && activeSource && doc.activeElement !== activeEditor) {
-            activeEditor.innerHTML = activeSource.value;
+            activeEditor.innerHTML = sanitizeRichHtml(activeSource.value);
         }
 
         // Pembaruan berurutan: paginasi yang sedang berjalan diselesaikan dulu,
@@ -302,6 +302,38 @@ const INLINE_BLOCK_TAGS = new Set([
     'header', 'hr', 'li', 'main', 'nav', 'ol', 'p', 'pre', 'section', 'table', 'tbody', 'td',
     'tfoot', 'th', 'thead', 'tr', 'ul',
 ]);
+
+/**
+ * Nilai schema sebelum dipasang sebagai innerHTML editor teks kaya. Nilai itu bisa diketik
+ * di mode "kode HTML" atau datang dari impor JSON, jadi tidak boleh dipercaya: hanya
+ * <b><i><u><br> tanpa atribut yang lolos — cerminan HtmlSanitizer di sisi server.
+ */
+export function sanitizeRichHtml(html) {
+    let current = String(html ?? '');
+
+    // Diulang sampai stabil: membuang satu tag bisa menyatukan sisa di kiri-kanannya menjadi
+    // tag baru (mis. "<<x>img onerror=…>" menjadi "<img onerror=…>").
+    for (let pass = 0; pass < 50; pass++) {
+        const next = current
+            .replace(/<(script|style)\b[\s\S]*?<\/\1\s*>/gi, '')
+            .replace(/<!--[\s\S]*?-->/g, '')
+            .replace(/<\/?([a-zA-Z][a-zA-Z0-9:-]*)\b[^>]*>?/g, (match, name) => {
+                const tag = name.toLowerCase();
+
+                if (!['b', 'i', 'u', 'br'].includes(tag)) return '';
+                if (match.startsWith('</')) return tag === 'br' ? '' : `</${tag}>`;
+
+                return `<${tag}>`;
+            });
+
+        if (next === current) return next;
+
+        current = next;
+    }
+
+    // Tidak kunjung stabil: jangan pasang apa pun sebagai markup.
+    return current.replace(/</g, '&lt;');
+}
 
 /**
  * Normalisasi isi contenteditable menjadi nilai schema: blok menjadi <br>,
@@ -542,7 +574,7 @@ export function initMiniRte({ document: doc = globalThis.document } = {}) {
         const isShowingSource = source.classList?.contains?.('d-none') === false;
 
         if (isShowingSource) {
-            editor.innerHTML = source.value;
+            editor.innerHTML = sanitizeRichHtml(source.value);
             source.classList?.add?.('d-none');
             editor.classList?.remove?.('d-none');
             btn.classList?.remove?.('active');

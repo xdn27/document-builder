@@ -72,6 +72,45 @@ final class FilesystemImageUploadStorage implements ImageUploadStorage
             return null;
         }
 
-        return Storage::disk($this->disk)->path(substr($src, strlen($prefix)));
+        return self::containedPath(Storage::disk($this->disk)->path(''), substr($src, strlen($prefix)));
+    }
+
+    /**
+     * Jalur $relative di dalam $root, atau null bila jalurnya keluar dari $root — lewat ".."
+     * maupun lewat symlink. Null membuat pemanggil kembali memakai URL aslinya, sehingga berkas
+     * di luar disk tidak pernah dibaca langsung dari filesystem. Berkas yang belum ada tetap
+     * mendapat jalurnya (seperti sebelumnya), supaya engine tidak beralih mengambilnya lewat HTTP.
+     */
+    public static function containedPath(string $root, string $relative): ?string
+    {
+        $root = rtrim(str_replace('\\', '/', $root), '/');
+        $segments = [];
+
+        foreach (explode('/', str_replace('\\', '/', $relative)) as $segment) {
+            if ($segment === '' || $segment === '.') {
+                continue;
+            }
+
+            if ($segment === '..') {
+                return null;
+            }
+
+            $segments[] = $segment;
+        }
+
+        $path = $root.'/'.implode('/', $segments);
+        $real = realpath($path);
+
+        if ($real === false) {
+            return $path;
+        }
+
+        $realRoot = realpath($root);
+
+        if ($realRoot === false || ! str_starts_with($real, rtrim($realRoot, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR)) {
+            return null;
+        }
+
+        return $real;
     }
 }

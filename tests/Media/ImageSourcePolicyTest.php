@@ -69,4 +69,33 @@ class ImageSourcePolicyTest extends TestCase
         // Dipakai hanya di test renderer, tidak pernah di jalur produksi.
         $this->assertTrue(ImageSourcePolicy::permissive()->isAllowed('https://contoh.test/x.png'));
     }
+
+    public function test_rejects_path_traversal_out_of_an_allowed_prefix(): void
+    {
+        // Awalan cocok secara string, tetapi segmen ".." membawa jalurnya keluar dari awalan:
+        // engine PDF lalu membaca berkas di luar disk yang diizinkan.
+        foreach ([
+            'https://cdn.sekolah.id/../../private/foto.jpg',
+            'https://cdn.sekolah.id/kop/../../../etc/passwd',
+            'https://cdn.sekolah.id/%2e%2e/%2e%2e/private/foto.jpg',
+            'https://cdn.sekolah.id/%252e%252e/private/foto.jpg',
+            'https://cdn.sekolah.id/..%2fprivate/foto.jpg',
+            'https://cdn.sekolah.id/kop\\..\\..\\private\\foto.jpg',
+            '/var/www/storage/app/public/../private/foto.jpg',
+            '/var/www/storage/app/public/..',
+        ] as $src) {
+            $this->assertFalse($this->policy()->isAllowed($src), $src);
+        }
+    }
+
+    public function test_dots_inside_a_file_or_folder_name_are_not_traversal(): void
+    {
+        $this->assertTrue($this->policy()->isAllowed('https://cdn.sekolah.id/v1.2/logo..final.png'));
+        $this->assertTrue($this->policy()->isAllowed('https://cdn.sekolah.id/kop/...arsip/logo.png'));
+    }
+
+    public function test_the_permissive_policy_still_rejects_traversal(): void
+    {
+        $this->assertFalse(ImageSourcePolicy::permissive()->isAllowed('https://contoh.test/a/../../b.png'));
+    }
 }
