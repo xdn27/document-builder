@@ -3,6 +3,20 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [1.9.9] — 2026-10-06
+
+### Keamanan
+- **Penyisipan JavaScript lewat id blok.** Id blok dari schema dicetak ke ekspresi
+  `wire:click="selectBlock('…')"` di panel struktur builder, dan validator menerima teks apa pun
+  sebagai id. Schema hasil impor dengan id berisi tanda kutip menjalankan JavaScript saat butirnya
+  diklik. `SchemaValidator` kini hanya menerima id berpola `[A-Za-z0-9_.:-]{1,100}`
+  (`SchemaValidator::BLOCK_ID_PATTERN`), dan view memeriksa pola yang sama sebelum mencetaknya.
+  Zona terpilih di `addBlock(…)` dibatasi ke `header`/`body`/`footer`.
+
+### Diubah
+- **Schema dengan id blok di luar pola itu kini ditolak validator.** UUID buatan builder dan id
+  pendek seperti `p1` memenuhinya.
+
 ## [1.9.8] — 2026-10-06
 
 ### Keamanan

@@ -50,6 +50,33 @@ class SchemaValidatorTest extends TestCase
         $this->assertEqualsWithDelta(12.0, $template->footer->height, 0.001);
     }
 
+    public function test_rejects_a_block_id_that_could_break_out_of_markup_or_script(): void
+    {
+        // Id ikut tercetak ke ekspresi wire:click di builder: tanda kutip di dalamnya menjalankan
+        // JavaScript saat butir struktur diklik.
+        foreach (["x'); alert(1); ('", 'a"b', 'a b', '<b>', 'a/b', str_repeat('a', 101), "a\n"] as $id) {
+            try {
+                SchemaValidator::validate($this->validRaw(['zones' => ['body' => ['blocks' => [
+                    ['id' => $id, 'type' => 'paragraph', 'props' => ['text' => 'Halo']],
+                ]]]]));
+                $this->fail('Id diterima: '.json_encode($id));
+            } catch (SchemaValidationException $e) {
+                $this->assertArrayHasKey('zones.body.blocks.0.id', $e->errors(), json_encode($id));
+            }
+        }
+    }
+
+    public function test_accepts_the_block_ids_the_builder_and_fixtures_use(): void
+    {
+        foreach (['p1', 'kop', '25f6648e-9ff0-4b2e-8ffe-05b6dabecefd', 'grup-ab12', 'blok_1.a:b'] as $id) {
+            $template = SchemaValidator::validate($this->validRaw(['zones' => ['body' => ['blocks' => [
+                ['id' => $id, 'type' => 'paragraph', 'props' => ['text' => 'Halo']],
+            ]]]]));
+
+            $this->assertSame($id, $template->toArray()['zones']['body']['blocks'][0]['id']);
+        }
+    }
+
     public function test_it_rejects_a_schema_larger_than_the_byte_limit(): void
     {
         $raw = $this->validRaw([

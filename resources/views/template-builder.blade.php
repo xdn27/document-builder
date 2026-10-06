@@ -163,7 +163,7 @@
                 <div class="d-flex flex-wrap gap-2">
                     @foreach ($blockTypes as $type)
                         <button type="button" class="btn btn-sm btn-label-primary"
-                            wire:click="addBlock('{{ $type->value }}', '{{ $selectedZone }}')">
+                            wire:click="addBlock('{{ $type->value }}', '{{ in_array($selectedZone, ['header', 'body', 'footer'], true) ? $selectedZone : 'body' }}')">
                             <i class="ti ti-plus me-1"></i>{{ $type->label($labelTranslator) }}
                         </button>
                     @endforeach
@@ -180,7 +180,7 @@
                 @forelse ($schema['zones'][$selectedZone]['blocks'] ?? [] as $block)
                     @php($blockType = \Maqiis\DocumentBuilder\Schema\BlockType::tryFrom($block['type'] ?? ''))
                     <li wire:key="outline-{{ $block['id'] }}" draggable="true" data-outline-id="{{ $block['id'] }}"
-                        wire:click="selectBlock('{{ $block['id'] }}')" role="button"
+                        wire:click="selectBlock('{{ preg_match(\Maqiis\DocumentBuilder\Schema\SchemaValidator::BLOCK_ID_PATTERN, (string) $block['id']) === 1 ? $block['id'] : '' }}')" role="button"
                         class="list-group-item d-flex justify-content-between align-items-center {{ ($block['id'] ?? null) === $selectedId ? 'active' : '' }}">
                         <span>{{ $blockType?->label($labelTranslator) ?? ($block['type'] ?? '?') }}</span>
                         <i class="ti ti-grip-vertical"></i>

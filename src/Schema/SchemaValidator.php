@@ -10,6 +10,9 @@ namespace Maqiis\DocumentBuilder\Schema;
  */
 final class SchemaValidator
 {
+    /** Bentuk id blok yang diterima; UUID buatan builder dan id pendek seperti "p1" memenuhinya. */
+    public const BLOCK_ID_PATTERN = '/^[A-Za-z0-9_.:-]{1,100}$/D';
+
     /**
      * Schema dikirim utuh di setiap round-trip preview (Livewire mengirim
      * seluruh state, konsumen non-Blade mem-POST seluruh schema), jadi ukurannya
@@ -155,6 +158,14 @@ final class SchemaValidator
 
         if (! is_string($id) || trim($id) === '') {
             $this->errors["{$path}.id"] = 'Blok wajib memiliki id berupa teks tidak kosong.';
+
+            return null;
+        }
+
+        // Id ikut tercetak ke atribut dan ke ekspresi wire:click di builder. Pola ketat menutup
+        // penyisipan JavaScript lewat id (mis. dari schema hasil impor).
+        if (preg_match(self::BLOCK_ID_PATTERN, $id) !== 1) {
+            $this->errors["{$path}.id"] = 'Id blok hanya boleh berisi huruf, angka, titik, titik dua, garis bawah, dan tanda hubung (maksimal 100 karakter).';
 
             return null;
         }

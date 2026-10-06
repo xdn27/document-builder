@@ -25,4 +25,15 @@ final class InspectorEscapingTest extends TestCase
 
         $this->assertStringContainsString('HtmlSanitizer', $view);
     }
+
+    public function test_schema_values_never_enter_a_wire_click_expression_unchecked(): void
+    {
+        // wire:click dievaluasi sebagai JavaScript; nilai dari schema atau dari properti publik
+        // yang bisa ditulis klien harus dibatasi ke pola aman sebelum disisipkan.
+        $view = (string) file_get_contents(__DIR__.'/../../resources/views/template-builder.blade.php');
+
+        $this->assertStringNotContainsString("selectBlock('{{ \$block['id'] }}')", $view);
+        $this->assertStringNotContainsString("'{{ \$selectedZone }}')", $view);
+        $this->assertStringContainsString('BLOCK_ID_PATTERN', $view);
+    }
 }
