@@ -3,6 +3,27 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
+## [2.0.0] — belum dirilis
+
+### Diubah
+- **Builder tidak lagi mengirim request setiap kali pengguna mengetik.** Semua isian panel kiri dan
+  inspektor kini `wire:model` deferred. Perubahan yang tertumpuk dikirim sekaligus lewat method baru
+  `TemplateBuilder::refreshPreview()` setelah pengguna berhenti mengetik ±800 ms, saat isian teks
+  ditinggalkan, atau langsung untuk select/checkbox (`initDeferredSync()` di `builder.mjs`).
+- **Pratinjau kanvas dirender paling banyak sekali per request**, berapa pun isian yang ikut
+  terkirim. Sebelumnya `updated()` merender ulang seluruh template untuk setiap isian.
+- **`refreshPreview()` tidak merender ulang panel** selama yang tampak di sana (badge "belum
+  disimpan", daftar galat) tidak berubah, sehingga caret dan isian yang sedang diketik tidak
+  tersentuh morph Livewire.
+- **Overlay "Loading..." hanya untuk aksi berat** (simpan, impor, ekspor, tambah/hapus blok dan
+  baris) dan baru tampil setelah ±1 detik. Pembaruan pratinjau cukup ditandai "Memperbarui
+  pratinjau…" di baris status kanvas.
+
+### Dihapus
+- **Dukungan Livewire 2 dan 3.** Komponen penyusun kini khusus Livewire 4 (`conflict:
+  livewire/livewire <4.0`). Jalur `dispatchBrowserEvent()`, `livewire.emit` dan `livewire:load`
+  dibuang.
+
 ## [1.9.10] — 2026-10-06
 
 ### Keamanan

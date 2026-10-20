@@ -476,6 +476,66 @@ export function initOutlineDragging({ document: doc = globalThis.document, onReo
 }
 
 /**
+ * Isian panel memakai wire:model biasa (deferred), jadi mengetik tidak
+ * mengirim request. Modul ini yang menentukan kapan perubahan yang tertunda
+ * dikirim lewat onFlush: sekali setelah pengguna berhenti mengetik selama
+ * `delay` ms, saat isian teks ditinggalkan (change), atau langsung untuk
+ * select/checkbox/radio. Input berkas diabaikan — unggahannya punya jalur
+ * sendiri — begitu pula elemen tanpa wire:model.
+ */
+export function initDeferredSync({ document: doc = globalThis.document, delay = 800, onFlush } = {}) {
+    let timer = null;
+    let pending = false;
+
+    const handle = {
+        flush() {
+            clearTimeout(timer);
+            timer = null;
+
+            if (!pending) return;
+
+            pending = false;
+            onFlush?.();
+        },
+        pending: () => pending,
+    };
+
+    if (!doc || typeof doc.addEventListener !== 'function') {
+        return handle;
+    }
+
+    const isBound = (el) => typeof el?.getAttributeNames === 'function'
+        && el.getAttributeNames().some((name) => name === 'wire:model' || name.startsWith('wire:model.'));
+
+    const isChoice = (el) => el.tagName === 'SELECT' || el.type === 'checkbox' || el.type === 'radio';
+
+    doc.addEventListener('input', (event) => {
+        const el = event.target;
+
+        // Pilihan dikirim lewat change di bawah; input dari elemen yang sama diabaikan.
+        if (!isBound(el) || el.type === 'file' || isChoice(el)) return;
+
+        pending = true;
+        clearTimeout(timer);
+        timer = setTimeout(handle.flush, delay);
+    });
+
+    doc.addEventListener('change', (event) => {
+        const el = event.target;
+
+        if (!isBound(el) || el.type === 'file') return;
+
+        if (isChoice(el)) {
+            pending = true;
+        }
+
+        handle.flush();
+    });
+
+    return handle;
+}
+
+/**
  * Mini-RTE untuk inspektor (prop rich text seperti Paragraph 'text').
  * Mengubah contenteditable menjadi subset aman (<b>, <i>, <u>, <br>),
  * mensinkronkan ke textarea Livewire via input event, dan menyediakan

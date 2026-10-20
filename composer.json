@@ -19,9 +19,9 @@
     "require-dev": {
         "ext-gd": "*",
         "laravel/framework": "^10.0|^11.0|^12.0|^13.0",
-        "livewire/livewire": "^2.12|^3.0",
+        "livewire/livewire": "^4.0",
         "mpdf/mpdf": "^8.3",
-        "phpunit/phpunit": "^10.0"
+        "phpunit/phpunit": "^10.0|^11.0|^12.0"
     },
     "suggest": {
         "mpdf/mpdf": "Diperlukan oleh MpdfEngine untuk menghasilkan PDF",
@@ -44,8 +44,11 @@
             ]
         },
         "branch-alias": {
-            "dev-main": "1.x-dev"
+            "dev-main": "2.x-dev"
         }
+    },
+    "conflict": {
+        "livewire/livewire": "<4.0"
     },
     "minimum-stability": "stable"
 }

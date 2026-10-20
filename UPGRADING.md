@@ -1,5 +1,18 @@
 # Upgrading
 
+## Dari 1.x ke 2.0 (builder tanpa request per ketikan)
+
+1. **Livewire 4 wajib.** Aplikasi yang masih di Livewire 2/3 tetap di 1.x.
+2. **View yang dipublish** (`resources/views/vendor/document-builder/`) harus dipublish ulang atau
+   disesuaikan: isian panel kini `wire:model` polos, skrip memanggil `initDeferredSync()` dan
+   `refreshPreview()`, dan overlay `wire:loading` memakai `.delay.long` + `wire:target`. View lama
+   yang masih `wire:model.live` tetap berfungsi, tetapi kembali mengirim request per ketikan.
+3. **Subclass `TemplateBuilder`** yang menimpa `updated()` atau memanggil `schemaChanged()`:
+   `schemaChanged()` kini hanya menandai pratinjau tertunda; pratinjau dikirim sekali oleh
+   `flushPreview()` (di `rendering()`, `refreshPreview()`, `save()` dan `exportSchema()`).
+4. **Test aplikasi** yang mengandalkan `->set('schema…')` memicu pratinjau tetap lulus: setiap
+   `set()` adalah request tersendiri yang merender panel, dan pratinjau dikirim di `rendering()`.
+
 ## Dari 1.1 ke 1.2 (tanpa migration bawaan)
 
 Tidak ada yang wajib diubah. Migration `document_templates` yang dulu dipublish tetap milik aplikasi

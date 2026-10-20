@@ -25,10 +25,15 @@ use Maqiis\DocumentBuilder\Variable\VariableRegistry;
  * wire:ignore dan sepenuhnya dikelola builder.mjs, karena paginator mengganti
  * DOM kanvas dan akan bertabrakan dengan diffing Livewire.
  *
- * Komponen ini netral terhadap tiga hal sekaligus: model konsumen (lewat
- * TemplateRecord), versi Livewire (lewat dispatchToBrowser()), dan toaster yang
- * dipakai aplikasi (lewat event document-builder-notify). Tidak ada nama route
- * maupun ability yang ditulis di sini — semuanya dari config.
+ * Isian panel memakai wire:model deferred: mengetik tidak mengirim request.
+ * builder.mjs (initDeferredSync) mengirim perubahan yang tertumpuk lewat
+ * refreshPreview() setelah pengguna berhenti mengetik. Pratinjau dirender
+ * paling banyak sekali per request (flushPreview()), berapa pun jumlah
+ * isian yang ikut terkirim.
+ *
+ * Komponen ini netral terhadap model konsumen (lewat TemplateRecord) dan
+ * toaster yang dipakai aplikasi (lewat event document-builder-notify). Tidak
+ * ada nama route maupun ability yang ditulis di sini — semuanya dari config.
  */
 class TemplateBuilder extends Component
 {
@@ -76,8 +81,7 @@ class TemplateBuilder extends Component
      * lalu dibuang di applyImageUpload(); ini bukan bagian dari schema, hanya
      * wadah sementara berkas yang diunggah.
      *
-     * Sengaja tanpa tipe berkas Livewire: kelas TemporaryUploadedFile berpindah
-     * namespace antara Livewire 2 dan 3, dan induknya (Illuminate\Http\
+     * Sengaja tanpa tipe berkas Livewire: induknya (Illuminate\Http\
      * UploadedFile) sudah cukup untuk ImageUploadStorage.
      *
      * @var array<string,mixed>
@@ -100,6 +104,21 @@ class TemplateBuilder extends Component
      */
     protected ?array $initialPreview = null;
 
+    /**
+     * Schema berubah di request ini dan pratinjaunya belum dikirim. Dikirim
+     * sekali oleh flushPreview(), bukan per isian yang berubah.
+     */
+    private bool $previewPending = false;
+
+    /**
+     * Keadaan panel yang terlihat (badge "belum disimpan", daftar galat) saat
+     * request dimulai. refreshPreview() hanya merender ulang panel bila
+     * keadaan ini berubah.
+     *
+     * @var array{0:bool,1:array<string,string>}|null
+     */
+    private ?array $panelStateAtHydrate = null;
+
     /** Katalog gabungan, dibangun sekali per request (properti private tidak ikut snapshot). */
     private ?VariableRegistry $variableCatalog = null;
 
@@ -117,20 +136,24 @@ class TemplateBuilder extends Component
         $this->initialPreview = $this->preview();
     }
 
+    public function hydrate(): void
+    {
+        $this->panelStateAtHydrate = [$this->dirty, $this->schemaErrors];
+    }
+
     /**
-     * Satu-satunya tempat di komponen ini yang tahu soal versi Livewire.
-     * Livewire 2 mengirim browser event lewat dispatchBrowserEvent(); Livewire 3
-     * menghapus method itu dan memakai dispatch(), yang juga sampai ke JS lewat
-     * Livewire.on(). Sisi Blade menyambungkan keduanya (lihat view).
+     * Pratinjau dikirim tepat sebelum panel dirender, supaya aksi apa pun yang
+     * membawa isian deferred (pilih blok, tambah baris, simpan) tetap
+     * memperbarui kanvas — sekali saja per request.
      */
+    public function rendering(): void
+    {
+        $this->flushPreview();
+    }
+
+    /** Payload sampai ke JS lewat Livewire.on() sebagai satu objek. */
     protected function dispatchToBrowser(string $event, array $payload): void
     {
-        if (method_exists($this, 'dispatchBrowserEvent')) {
-            $this->dispatchBrowserEvent($event, $payload);
-
-            return;
-        }
-
         $this->dispatch($event, ...$payload);
     }
 
@@ -484,6 +507,11 @@ class TemplateBuilder extends Component
     {
         $this->template->authorizeTemplateUpdate();
 
+        // Isian deferred yang ikut request ini dikirim ke kanvas dulu: kalau
+        // dikirim belakangan (di rendering()), preview() yang tanpa batas
+        // ukuran akan menghapus galat yang baru saja dipasang di bawah.
+        $this->flushPreview();
+
         try {
             // save() adalah jalur TULIS — batas ukuran ditegakkan eksplisit di
             // sini. preview() di bawah sengaja TIDAK menyebutkan $maxBytes,
@@ -520,6 +548,8 @@ class TemplateBuilder extends Component
      */
     public function exportSchema(): void
     {
+        $this->flushPreview(); // lihat catatan yang sama di save()
+
         try {
             $validated = Template::fromArray($this->schema);
         } catch (SchemaValidationException $e) {
@@ -546,14 +576,44 @@ class TemplateBuilder extends Component
         return null;
     }
 
+    /**
+     * Dipanggil builder.mjs setelah pengguna berhenti mengetik: isian deferred
+     * ikut terkirim bersama panggilan ini, lalu kanvas diperbarui sekali.
+     * Panel tidak dirender ulang selama yang terlihat di sana tidak berubah,
+     * supaya caret dan isian yang sedang diketik tidak tersentuh morph.
+     *
+     * @return bool true bila pratinjau baru dikirim ke kanvas
+     */
+    public function refreshPreview(): bool
+    {
+        $sent = $this->flushPreview();
+
+        if ($this->panelStateAtHydrate === [$this->dirty, $this->schemaErrors]) {
+            $this->skipRender();
+        }
+
+        return $sent;
+    }
+
     private function schemaChanged(): void
     {
         $this->dirty = true;
+        $this->previewPending = true;
+    }
+
+    /** @return bool true bila pratinjau baru dikirim ke kanvas */
+    private function flushPreview(): bool
+    {
+        if (! $this->previewPending) {
+            return false;
+        }
+
+        $this->previewPending = false;
 
         $preview = $this->preview();
 
         if ($preview === null) {
-            return;
+            return false;
         }
 
         $this->revision++;
@@ -562,6 +622,8 @@ class TemplateBuilder extends Component
             'selectedId' => $this->selectedId,
             'revision' => $this->revision,
         ]);
+
+        return true;
     }
 
     private function variableCatalog(): VariableRegistry

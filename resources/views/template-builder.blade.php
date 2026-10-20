@@ -13,6 +13,8 @@
                     onRendered: (result) => {
                         const status = document.getElementById('db-page-status');
 
+                        delete status?.dataset.previous;
+
                         if (!status || !result) return;
 
                         let text = `${result.pageCount} halaman`;
@@ -30,30 +32,49 @@
                     },
                 });
 
-                // Tiga baris di bawah ini satu-satunya tempat di package yang tahu
-                // perbedaan Livewire 2 vs 3. Livewire 3 mengekspos Livewire.dispatch/
-                // Livewire.on; Livewire 2 memakai livewire.emit dan browser event biasa.
-                if (isV3()) {
-                    window.Livewire.on('document-preview-updated', (payload) => handle.applyPreview(unwrap(payload)));
-                    window.Livewire.on('document-builder-notify', (payload) => notify(unwrap(payload)));
-                    window.Livewire.on('document-schema-exported', (payload) => downloadSchema(unwrap(payload)));
-                } else {
-                    window.addEventListener('document-preview-updated', (event) => handle.applyPreview(event.detail));
-                    window.addEventListener('document-builder-notify', (event) => notify(event.detail));
-                    window.addEventListener('document-schema-exported', (event) => downloadSchema(event.detail));
-                }
+                // Isian panel deferred: mengetik tidak mengirim request. Perubahan yang
+                // tertumpuk dikirim sekali setelah pengguna berhenti mengetik.
+                initDeferredSync({ onFlush: refreshPreview });
+
+                window.Livewire.on('document-preview-updated', (payload) => handle.applyPreview(unwrap(payload)));
+                window.Livewire.on('document-builder-notify', (payload) => notify(unwrap(payload)));
+                window.Livewire.on('document-schema-exported', (payload) => downloadSchema(unwrap(payload)));
             }
 
-            function isV3() {
-                return typeof window.Livewire?.dispatch === 'function';
+            // Komponen dicari saat dipanggil, bukan saat start(): setelah
+            // wire:navigate, komponen yang sama punya id baru.
+            function builderComponent() {
+                const root = document.getElementById('db-canvas')?.closest('[wire\\:id]');
+
+                return root ? window.Livewire.find(root.getAttribute('wire:id')) : null;
+            }
+
+            function refreshPreview() {
+                const component = builderComponent();
+                const status = document.getElementById('db-page-status');
+
+                if (!component) return;
+
+                if (status && status.dataset.previous === undefined) {
+                    status.dataset.previous = status.textContent;
+                    status.textContent = 'Memperbarui pratinjau…';
+                }
+
+                // false = tidak ada pratinjau baru (mis. schema belum valid):
+                // kembalikan status lama, karena onRendered tidak akan terpanggil.
+                component.refreshPreview().then((sent) => {
+                    if (sent || !status || status.dataset.previous === undefined) return;
+
+                    status.textContent = status.dataset.previous;
+                    delete status.dataset.previous;
+                });
             }
 
             function emit(event, ...params) {
-                isV3() ? window.Livewire.dispatch(event, params) : window.livewire.emit(event, ...params);
+                window.Livewire.dispatch(event, params);
             }
 
-            // Livewire 3 menyerahkan parameter event sebagai array; Livewire 2
-            // memberikan detail apa adanya.
+            // Livewire menyerahkan parameter event sebagai array.
             function unwrap(payload) {
                 return Array.isArray(payload) ? payload[0] : payload;
             }
@@ -89,14 +110,16 @@
                 URL.revokeObjectURL(url);
             }
 
-            document.addEventListener('livewire:load', start);   // Livewire 2
-            document.addEventListener('livewire:init', start);    // Livewire 3
+            document.addEventListener('livewire:init', start);
         })();
     </script>
 @endpush
 
 <div class="row g-4">
-    <div class="position-absolute top-50 start-50 translate-middle" style="z-index: 9999;" wire:loading>
+    {{-- Hanya untuk aksi berat, dan baru tampil bila berjalan lebih dari ±1 detik.
+         Pembaruan pratinjau cukup ditandai di baris status kanvas. --}}
+    <div class="position-absolute top-50 start-50 translate-middle" style="z-index: 9999;"
+        wire:loading.delay.long wire:target="save,addBlock,removeSelected,addRow,removeRow,importFile,exportSchema">
         <div class="card px-5 shadow">
             <div class="card-body text-center text-body">
                 <div class="d-flex align-items-center justify-content-center">
@@ -131,7 +154,7 @@
                         <div class="col-7">
                             <label class="form-label small mb-1">Tampil di</label>
                             <select class="form-select form-select-sm"
-                                wire:model.live="schema.zones.{{ $selectedZone }}.repeat">
+                                wire:model="schema.zones.{{ $selectedZone }}.repeat">
                                 <option value="all">Semua halaman</option>
                                 <option value="first-only">Halaman pertama saja</option>
                                 <option value="except-first">Selain halaman pertama</option>
@@ -199,7 +222,7 @@
                 <div class="row g-2">
                     <div class="col-6">
                         <label class="form-label small mb-1">Ukuran</label>
-                        <select class="form-select form-select-sm" wire:model.live="schema.page.size">
+                        <select class="form-select form-select-sm" wire:model="schema.page.size">
                             @foreach (['A4', 'F4', 'Letter', 'Legal'] as $size)
                                 <option value="{{ $size }}">{{ $size }}</option>
                             @endforeach
@@ -207,7 +230,7 @@
                     </div>
                     <div class="col-6">
                         <label class="form-label small mb-1">Orientasi</label>
-                        <select class="form-select form-select-sm" wire:model.live="schema.page.orientation">
+                        <select class="form-select form-select-sm" wire:model="schema.page.orientation">
                             <option value="portrait">Potret</option>
                             <option value="landscape">Lanskap</option>
                         </select>
@@ -216,12 +239,12 @@
                         <div class="col-6">
                             <label class="form-label small mb-1">Margin {{ $label }} (mm)</label>
                             <input type="number" min="0" max="50" step="1" class="form-control form-control-sm"
-                                wire:model.live.debounce.500ms="schema.page.margin.{{ $side }}">
+                                wire:model="schema.page.margin.{{ $side }}">
                         </div>
                     @endforeach
                     <div class="col-12">
                         <label class="form-label small mb-1">Huruf</label>
-                        <select class="form-select form-select-sm" wire:model.live="schema.style.fontFamily">
+                        <select class="form-select form-select-sm" wire:model="schema.style.fontFamily">
                             @foreach ($fonts as $key => $font)
                                 <option value="{{ $key }}">{{ $font['label'] }}</option>
                             @endforeach
@@ -230,19 +253,19 @@
                     <div class="col-6">
                         <label class="form-label small mb-1">Ukuran (pt)</label>
                         <input type="number" min="8" max="24" step="0.5" class="form-control form-control-sm"
-                            wire:model.live.debounce.500ms="schema.style.fontSize">
+                            wire:model="schema.style.fontSize">
                     </div>
                     <div class="col-6">
                         <label class="form-label small mb-1">Tinggi baris</label>
                         <input type="number" min="1" max="3" step="0.1" class="form-control form-control-sm"
-                            wire:model.live.debounce.500ms="schema.style.lineHeight">
+                            wire:model="schema.style.lineHeight">
                     </div>
                     <div class="col-8">
                         <label class="form-label small mb-1">Watermark</label>
                         <input type="text" maxlength="{{ \Maqiis\DocumentBuilder\Schema\Watermark::MAX_LENGTH }}"
                             list="db-watermark-presets" placeholder="Tanpa watermark"
                             class="form-control form-control-sm"
-                            wire:model.live.debounce.500ms="schema.watermark.text">
+                            wire:model="schema.watermark.text">
                         <datalist id="db-watermark-presets">
                             @foreach (['DRAF', 'RAHASIA', 'SALINAN', 'CONTOH', 'ARSIP'] as $preset)
                                 <option value="{{ $preset }}"></option>
@@ -256,7 +279,7 @@
                             max="{{ \Maqiis\DocumentBuilder\Schema\Watermark::MAX_OPACITY }}"
                             placeholder="{{ \Maqiis\DocumentBuilder\Schema\Watermark::DEFAULT_OPACITY }}"
                             class="form-control form-control-sm"
-                            wire:model.live.debounce.500ms="schema.watermark.opacity">
+                            wire:model="schema.watermark.opacity">
                     </div>
                 </div>
             </div>

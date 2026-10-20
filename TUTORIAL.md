@@ -13,7 +13,7 @@ laporkan.
 
 ## 1A. Quickstart: Blade + Livewire
 
-Prasyarat: Laravel 10+, PHP 8.1+, Livewire 2.12 atau 3, Bootstrap 5 di layout Anda.
+Prasyarat: Laravel 10+, PHP 8.1+, Livewire 4, Bootstrap 5 di layout Anda.
 
 **1. Pasang paketnya.** Paket ini privat dan tidak ada di Packagist; daftarkan repo-nya di
 `composer.json` aplikasi Anda:
