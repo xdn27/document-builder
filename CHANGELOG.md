@@ -3,7 +3,7 @@
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/); versi mengikuti semver
 sebagaimana dijelaskan di README ("API publik & versi").
 
-## [2.0.0] — belum dirilis
+## [2.0.0] — 2026-10-20
 
 ### Diubah
 - **Builder tidak lagi mengirim request setiap kali pengguna mengetik.** Semua isian panel kiri dan
